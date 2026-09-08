@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="covergen">
+  <rect width="64" height="64" rx="12" fill="#4568ff"/>
+  <g transform="translate(12.0 52.0) scale(0.125 -0.125)">
+    <path d="M256 0H192H128H64H0V64V128V192V256V320H64H128H192H256H320V256V192H256H192H128V128H192H256H320V64V0Z" fill="#ffffff"/>
+  </g>
+</svg>

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BUP Assignment Cover Page Generator</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="apple-touch-icon" href="assets/favicon-180.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Geist for the app chrome (interior.dev's typeface); the serifs are for
+       the printed cover sheet only. -->
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600;1,700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="components/interior/tokens.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar / Controls -->
+    <aside class="sidebar" id="sidebar">
+      <header class="app-header">
+        <div class="brandmark">
+          <h1 class="wordmark">covergen</h1>
+          <a class="byline" href="https://scirex.me" target="_blank" rel="noopener noreferrer"
+             aria-label="by SC1R3X, opens scirex.me in a new tab">by SC1R3X</a>
+        </div>
+        <a class="credit-link" href="https://facebook.com/fahimscirex"
+           target="_blank" rel="noopener noreferrer"
+           title="Made by Fahim"
+           aria-label="Made by Fahim, opens Facebook in a new tab">
+          <img src="assets/scirex-icon.png" alt="" width="24" height="24" loading="lazy">
+        </a>
+      </header>
+
+      <form id="coverForm" autocomplete="off">
+        <interior-accordion multiple>
+
+          <!-- 1. University & Department -->
+          <interior-panel step="1" heading="University &amp; department" open>
+            <div class="stack">
+              <interior-field id="univNameInput" label="University headline"
+                value="BANGLADESH UNIVERSITY OF PROFESSIONALS"></interior-field>
+
+              <div class="row">
+                <interior-dropdown id="headerCaseSelect" block label="Headline case" value="header-caps"
+                  items='[{"value":"header-caps","label":"ALL CAPS"},{"value":"header-title","label":"Title Case"}]'></interior-dropdown>
+                <div class="field-group">
+                  <span class="caption">Headline size</span>
+                  <interior-stepper id="headerSizeSelect" block label="Headline size"
+                    min="12" max="34" step="1" value="21" suffix="pt"></interior-stepper>
+                </div>
+              </div>
+
+              <div class="field-group">
+                <interior-field id="univTaglineInput" label="Tagline / motto"
+                  value="Excellence Through Knowledge"></interior-field>
+                <interior-check id="showTagline" label="Show tagline on cover" checked></interior-check>
+              </div>
+
+              <div class="field-group">
+                <interior-field id="univAddressInput" label="Campus address"
+                  value="Mirpur Cantonment, Dhaka-1216, Bangladesh"></interior-field>
+                <interior-check id="showAddress" label="Show address on cover" checked></interior-check>
+              </div>
+
+              <div class="row">
+                <interior-dropdown id="facultyPreset" block label="Faculty" value="FBS"
+                  items='[{"value":"FBS","label":"FBS","full":"Faculty of Business Studies"},{"value":"FASS","label":"FASS","full":"Faculty of Arts &amp; Social Sciences"},{"value":"FST","label":"FST","full":"Faculty of Science &amp; Technology"},{"value":"FSSS","label":"FSSS","full":"Faculty of Security &amp; Strategic Studies"}]'></interior-dropdown>
+                <interior-dropdown id="deptPreset" block label="Department"></interior-dropdown>
+              </div>
+            </div>
+          </interior-panel>
+
+          <!-- 2. Assignment -->
+          <interior-panel step="2" heading="Assignment details" open>
+            <div class="stack">
+              <interior-field id="assignmentPrefix" label="Header label" value="Assignment on"
+                hint="Printed above the title"></interior-field>
+              <interior-field id="assignmentTopic" label="Assignment title" multiline rows="2"
+                value="Key Concepts of Auditing"></interior-field>
+              <div class="row">
+                <interior-field id="courseTitle" label="Course title" value="Taxation and Auditing"></interior-field>
+                <interior-field id="courseCode" label="Course code" value="MKT-3104"></interior-field>
+              </div>
+            </div>
+          </interior-panel>
+
+          <!-- 3. Submitted To -->
+          <interior-panel step="3" heading="Submitted to" open>
+            <div class="stack">
+              <interior-combobox id="teacherSearch" limit="8"
+                label="Search the BUP faculty directory"
+                placeholder="Search 387 BUP teachers by name or department"></interior-combobox>
+              <p class="field-note">Pick a name to fill the three fields below, or type them yourself.</p>
+
+              <interior-field id="teacherName" label="Teacher name" value="Asst. Prof. Anamika Dey"></interior-field>
+              <interior-field id="teacherDept" label="Teacher department" value="Department of Marketing"></interior-field>
+              <interior-field id="teacherAffiliation" label="Institution"
+                value="Bangladesh University of Professionals"></interior-field>
+            </div>
+          </interior-panel>
+
+          <!-- 4. Submitted By -->
+          <interior-panel step="4" heading="Submitted by" open>
+            <div class="stack">
+              <div class="field-group">
+                <span class="caption" id="submissionModeLabel">Submission type</span>
+                <interior-segmented id="submissionMode" label="Submission type" value="individual"
+                  options='[{"value":"individual","label":"Individual"},{"value":"group","label":"Group"}]'></interior-segmented>
+              </div>
+
+              <div class="members-container" id="membersContainer">
+                <div class="member-column-labels" aria-hidden="true">
+                  <span>Student name</span>
+                  <span>Student ID</span>
+                </div>
+                <div id="membersList" class="members-list"></div>
+                <button type="button" id="btnAddMember" class="btn-quiet">
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M6 2.5v7M2.5 6h7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                  Add student
+                </button>
+              </div>
+
+              <div class="row">
+                <interior-field id="studentSection" label="Section" value="A"></interior-field>
+                <interior-field id="studentSession" label="Session" value="2022-2023"></interior-field>
+              </div>
+              <div class="row">
+                <interior-field id="studentDept" label="Student department" value="Department of Marketing"></interior-field>
+                <interior-field id="studentIntake" label="Intake / batch (optional)"></interior-field>
+              </div>
+
+              <div class="row row-date">
+                <label class="native-field">
+                  <span class="caption">Date of submission</span>
+                  <input type="date" id="submissionDate">
+                </label>
+                <interior-check id="showDate" label="Show date on cover"></interior-check>
+              </div>
+            </div>
+          </interior-panel>
+
+          <!-- 5. Typography & Layout -->
+          <interior-panel step="5" heading="Typography &amp; layout">
+            <div class="stack">
+              <interior-dropdown id="fontSelect" block label="Document font" value="font-times"
+                items='[{"value":"font-times","label":"Times New Roman","full":"Times New Roman (standard classic)"},{"value":"font-garamond","label":"EB Garamond","full":"EB Garamond (academic serif)"},{"value":"font-baskerville","label":"Libre Baskerville","full":"Libre Baskerville (scholarly book serif)"},{"value":"font-georgia","label":"Georgia","full":"Georgia (wide formal serif)"},{"value":"font-arial","label":"Arial","full":"Arial (clean sans-serif)"}]'></interior-dropdown>
+              <div class="row">
+                <interior-dropdown id="topicSizeSelect" block label="Title size" value="topic-lg"
+                  items='[{"value":"topic-md","label":"18pt","full":"Medium (18pt)"},{"value":"topic-lg","label":"20pt","full":"Large (20pt)"},{"value":"topic-xl","label":"24pt","full":"Extra large (24pt)"}]'></interior-dropdown>
+                <div class="field-group">
+                  <span class="caption">Crest size</span>
+                  <interior-stepper id="logoSize" block label="Crest size"
+                    min="56" max="180" step="4" value="112" suffix="px"></interior-stepper>
+                </div>
+              </div>
+              <div class="row">
+                <interior-dropdown id="spacingSelect" block label="Vertical spacing" value="spacing-balanced"
+                  items='[{"value":"spacing-compact","label":"Compact","full":"Compact, for 3+ students"},{"value":"spacing-balanced","label":"Balanced","full":"Balanced (standard)"},{"value":"spacing-spacious","label":"Spacious","full":"Spacious"}]'></interior-dropdown>
+                <interior-dropdown id="borderSelect" block label="Page border" value="border-none"
+                  items='[{"value":"border-none","label":"None","full":"No border (standard format)"},{"value":"border-thin","label":"Thin","full":"Thin classic border"},{"value":"border-double","label":"Double","full":"Double academic border"}]'></interior-dropdown>
+              </div>
+            </div>
+          </interior-panel>
+
+        </interior-accordion>
+
+        <div class="form-actions-bottom">
+          <interior-hold-confirm id="btnReset"
+            label="Hold to reset sample" confirm-label="Reset"></interior-hold-confirm>
+          <interior-hold-confirm id="btnClear" tone="danger"
+            label="Hold to clear all" confirm-label="Cleared"></interior-hold-confirm>
+        </div>
+      </form>
+    </aside>
+
+    <!-- Preview Panel -->
+    <main class="preview-area">
+      <div class="preview-toolbar">
+        <div class="preview-info">
+          <span class="badge">Live A4</span>
+          <span class="save-status" id="saveStatus" role="status" aria-live="polite">Saved</span>
+        </div>
+        <div class="preview-actions">
+          <interior-stepper id="zoomStepper" label="Preview zoom"
+            min="25" max="140" step="10" value="100" suffix="%"></interior-stepper>
+          <input type="file" id="assignmentFile" accept="application/pdf,.pdf" hidden>
+          <interior-loading-button id="btnMerge"
+            label="Merge assignment" pending-label="Merging" success-label="Saved"
+            error-label="Could not merge" reset-after="2600"></interior-loading-button>
+          <interior-loading-button id="btnPrintFloating" variant="primary"
+            label="Print" pending-label="Preparing" success-label="Done"></interior-loading-button>
+        </div>
+      </div>
+
+      <div class="preview-scroll" id="previewScroll">
+        <!-- Exact A4 Paper Model (210mm x 297mm). Deliberately NOT themed by the
+             interior.dev tokens: this is the printed document, not app chrome. -->
+        <div class="a4-sheet font-times header-caps header-size-lg topic-lg border-none spacing-balanced" id="a4Sheet">
+          <div class="sheet-inner">
+
+            <div class="masthead-group">
+              <div class="univ-header-block">
+                <h1 class="univ-name" id="pUnivName">BANGLADESH UNIVERSITY OF PROFESSIONALS</h1>
+                <p class="univ-tagline" id="pUnivTagline">Excellence Through Knowledge</p>
+                <p class="univ-address" id="pUnivAddress">Mirpur Cantonment, Dhaka-1216, Bangladesh</p>
+              </div>
+            </div>
+
+            <div class="univ-logo-block">
+              <img src="assets/bup_logo.svg" alt="Bangladesh University of Professionals Crest" class="univ-logo logo-md" id="pLogo">
+            </div>
+
+            <div class="assignment-block">
+              <p class="prefix-label" id="pPrefix">Assignment on</p>
+              <h2 class="topic-title" id="pTopic">Key Concepts of Auditing</h2>
+              <h3 class="course-heading" id="pCourse">Taxation and Auditing (MKT-3104)</h3>
+            </div>
+
+            <div class="submitted-to-block">
+              <h4 class="section-title">Submitted To:</h4>
+              <p class="person-name" id="pTeacherName">Asst. Prof. Anamika Dey</p>
+              <p class="person-dept" id="pTeacherDept">Department of Marketing</p>
+              <p class="person-univ" id="pTeacherAffil">Bangladesh University of Professionals</p>
+            </div>
+
+            <div class="submitted-by-block">
+              <h4 class="section-title">Submitted By:</h4>
+              <table class="students-table" id="pStudentsTable">
+                <tbody>
+                  <tr>
+                    <td class="col-name">Md Fahim Montasir</td>
+                    <td class="col-id">23251708117</td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="student-meta">
+                <p id="pSection">Section: A</p>
+                <p id="pBatchWrap" class="hidden"><span id="pBatch"></span></p>
+                <p id="pSession">Session: 2022-2023</p>
+                <p id="pStudentDept">Department of Marketing</p>
+                <p id="pDateWrap" class="hidden"><span id="pDateLabel">Date of Submission:</span> <span id="pDateValue"></span></p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="components/interior/segmented-control.js"></script>
+  <script src="components/interior/loading-button.js"></script>
+  <script src="components/interior/hold-to-confirm.js"></script>
+  <script src="components/interior/field.js"></script>
+  <script src="components/interior/dropdown.js"></script>
+  <script src="components/interior/accordion.js"></script>
+  <script src="components/interior/check.js"></script>
+  <script src="components/interior/combobox.js"></script>
+  <script src="components/interior/stepper.js"></script>
+  <script src="assets/cover-pdf.js"></script>
+  <script src="assets/faculty_data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

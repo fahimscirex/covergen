@@ -1,0 +1,795 @@
+/* ==========================================================================
+   BUP Assignment Cover Page Generator
+   App chrome on the interior.dev design system (components/interior/tokens.css).
+   The A4 sheet below is intentionally excluded: it is a printed academic
+   document and keeps its own serif typography and black-on-white palette.
+   ========================================================================== */
+
+:root {
+  /* Serif families for the printed sheet only */
+  --font-times: 'Times New Roman', Times, serif;
+  --font-garamond: 'EB Garamond', Garamond, 'Georgia', serif;
+  --font-baskerville: 'Libre Baskerville', Baskerville, 'Georgia', serif;
+  --font-georgia: 'Georgia', serif;
+  --font-arial: 'Arial', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* One height and one surface for the sidebar header and the preview
+     toolbar, so they read as a single chrome band across the top and stay
+     distinct from the panels scrolling beneath them. */
+  --bar-h: 60px;
+  --bar-bg: color-mix(in srgb, var(--ink) 6%, var(--bezel));
+}
+
+/* Bitrimus, public domain (assets/fonts/Bitrimus-LICENSE.txt). Shipped with
+   the app so the wordmark does not depend on a font CDN. */
+@font-face {
+  font-family: 'Bitrimus';
+  src: url('assets/fonts/Bitrimus.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-ui);
+  font-size: var(--text);
+  letter-spacing: var(--track);
+  background-color: var(--bezel);
+  color: var(--ink);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.hidden { display: none !important; }
+
+/* Layout ------------------------------------------------------------------ */
+.app-layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 460px;
+  min-width: 400px;
+  max-width: 520px;
+  background: var(--bezel);
+  border-inline-end: 1px solid var(--hairline);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  z-index: 10;
+}
+
+.app-header {
+  /* A flex item in the sidebar column: without this it shrinks below its
+     height and the two bars stop lining up. */
+  flex: none;
+  height: var(--bar-h);
+  padding: 0 16px;
+  border-bottom: 1px solid var(--hairline);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  background: var(--bar-bg);
+  z-index: 20;
+}
+
+.brandmark {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.wordmark {
+  font-family: 'Bitrimus', 'Geist', ui-sans-serif, system-ui, sans-serif;
+  /* Bitrimus draws its lowercase as small capitals, so the mark is set all
+     lowercase. No text-transform: forcing uppercase would swap those small
+     caps for the tall block letterforms. */
+  font-size: 44px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.byline {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--ink-3);
+  white-space: nowrap;
+  text-decoration: none;
+  /* Padding rather than a larger font: keeps the mark small while giving the
+     link something to hit. */
+  padding: 4px 2px;
+  border-radius: 4px;
+  outline: none;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.byline:hover { color: var(--ink); background: var(--sub); }
+.byline:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* Author credit. 28px hit area around a 24px mark, per the touch-target
+   minimum the rest of the app holds to. */
+.credit-link {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-xs);
+  opacity: 0.65;
+  outline: none;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+.credit-link:hover { opacity: 1; background: var(--sub); }
+.credit-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.credit-link img { display: block; width: 24px; height: 24px; }
+
+#coverForm {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* The accordion is the form's frame; panels supply their own hairlines. */
+interior-accordion {
+  display: block;
+  overflow: hidden;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--hairline);
+  background: var(--panel);
+  box-shadow: var(--shadow-lift);
+}
+
+.stack { display: flex; flex-direction: column; gap: 10px; }
+.row { display: flex; gap: 10px; align-items: flex-start; }
+.row > * { flex: 1; min-width: 0; }
+.row-date { align-items: flex-end; }
+.row-date > interior-check { padding-bottom: 3px; }
+
+.field-note {
+  font-size: var(--text-sm);
+  line-height: 16px;
+  color: var(--ink-3);
+  margin-top: -2px;
+}
+
+/* Matches the caption <interior-dropdown> renders above its trigger, so every
+   labelled control in the form sits on the same baseline. */
+.caption {
+  display: block;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--ink-2);
+}
+
+/* A control and the checkbox that qualifies it are one unit, closer to each
+   other than to the next field. */
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Native date input, dressed to match the component well ------------------ */
+.native-field { display: flex; flex-direction: column; gap: 4px; }
+.native-field input {
+  width: 100%;
+  height: var(--field-h);
+  padding: 0 11px;
+  border: 1.5px solid var(--hairline);
+  border-radius: var(--r-md);
+  background: var(--sub);
+  box-shadow: var(--shadow-well);
+  color: var(--ink);
+  font: 400 var(--text)/1 var(--font-ui);
+  letter-spacing: var(--track);
+  outline: none;
+}
+.native-field input:focus-visible {
+  border-color: var(--accent);
+  background: var(--well);
+  box-shadow: none;
+}
+
+/* Students ---------------------------------------------------------------- */
+.members-container { display: flex; flex-direction: column; gap: 8px; }
+
+.member-column-labels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--ink-2);
+}
+
+.members-list { display: flex; flex-direction: column; gap: 8px; }
+
+.member-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Constant trailing room, so the row is identical whether or not it is
+   currently removable. */
+.member-row .member-id-input { padding-right: 34px; }
+
+.member-row input {
+  width: 100%;
+  height: var(--field-h);
+  padding: 0 11px;
+  border: 1.5px solid var(--hairline);
+  border-radius: var(--r-md);
+  background: var(--sub);
+  box-shadow: var(--shadow-well);
+  color: var(--ink);
+  font: 400 var(--text)/1 var(--font-ui);
+  letter-spacing: var(--track);
+  outline: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.member-row input::placeholder { color: var(--ink-3); }
+.member-row input:focus {
+  border-color: var(--accent);
+  background: var(--well);
+  box-shadow: none;
+}
+
+.member-row .btn-remove-member {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: var(--r-xs);
+  background: none;
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+.member-row .btn-remove-member:hover { color: var(--flag); background: var(--sub); }
+.member-row .btn-remove-member:active { transform: translateY(-50%) scale(0.94); }
+.member-row .btn-remove-member:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+/* Hidden, not removed: the row must not resize when it becomes removable */
+.member-row .btn-remove-member[hidden] { visibility: hidden; display: grid; }
+
+/* A quiet key, the same cap treatment as the stepper buttons */
+.btn-quiet {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: var(--field-h);
+  padding: 0 12px;
+  border: 1.5px solid var(--hairline);
+  border-radius: var(--r-md);
+  background: var(--well);
+  box-shadow: var(--shadow-cap);
+  color: var(--ink-2);
+  font: 500 var(--text)/1 var(--font-ui);
+  letter-spacing: var(--track);
+  cursor: pointer;
+  outline: none;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.1s var(--ease-cell);
+}
+.btn-quiet:hover { background: var(--sub); color: var(--ink); }
+.btn-quiet:active { transform: scale(0.98); }
+.btn-quiet:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.form-actions-bottom { display: flex; gap: 10px; }
+.form-actions-bottom interior-hold-confirm { flex: 1; }
+
+/* Preview ----------------------------------------------------------------- */
+.preview-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: color-mix(in srgb, var(--ink) 11%, var(--bezel));
+  position: relative;
+  overflow: hidden;
+}
+
+.preview-toolbar {
+  flex: none;
+  height: var(--bar-h);
+  padding: 0 16px;
+  background: var(--bar-bg);
+  border-bottom: 1px solid var(--hairline);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  z-index: 5;
+}
+
+.preview-info { display: flex; align-items: center; gap: 10px; min-width: 0; }
+
+.badge {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 4px 7px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Action feedback: holds its slot at all times, so acknowledging an autosave
+   never nudges the toolbar. Reduced motion keeps the word, drops the fade. */
+.save-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--moss);
+  opacity: 0;
+  transition: opacity 0.45s ease;
+}
+.save-status::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.save-status.is-visible { opacity: 1; }
+
+.preview-actions { display: flex; align-items: center; gap: 10px; }
+.preview-actions interior-loading-button { flex: none; }
+
+
+
+.preview-scroll {
+  flex: 1;
+  overflow: auto;
+  padding: 2.5rem 1.5rem;
+  display: flex;
+  /* `safe center` so a zoomed-in sheet stays fully scrollable instead of
+     spilling past the unreachable left edge. */
+  justify-content: safe center;
+  align-items: flex-start;
+}
+
+/* A class that sets `display` outranks the UA sheet's [hidden] rule, so the
+   attribute silently stops working. Declared last, after every control above,
+   so it wins on order. The remove-button rule beats it on specificity, which
+   is deliberate: that one hides without giving up its space. */
+[hidden] { display: none; }
+
+/* ==========================================================================
+   Exact A4 Paper Model (210mm x 297mm) - Original Sample Format
+   ========================================================================== */
+.a4-sheet {
+  width: 210mm;
+  min-height: 297mm;
+  height: 297mm;
+  background: #ffffff;
+  box-shadow: var(--shadow-sheet);
+  margin: 0 auto;
+  position: relative;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+
+  /* Balanced vertical spacing */
+  --gap-block: 4mm;
+}
+
+.a4-sheet.spacing-compact {
+  --gap-block: 0mm;
+}
+
+.a4-sheet.spacing-spacious {
+  --gap-block: 10mm;
+}
+
+/* Sheet Inner Container */
+.sheet-inner {
+  height: 100%;
+  padding: 18mm 24mm 16mm 24mm;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-block);
+  justify-content: space-evenly;
+  align-items: center;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+/* Document Fonts */
+.a4-sheet {
+  font-family: var(--font-times);
+}
+.a4-sheet.font-times { font-family: var(--font-times); }
+.a4-sheet.font-garamond { font-family: var(--font-garamond); }
+.a4-sheet.font-baskerville { font-family: var(--font-baskerville); }
+.a4-sheet.font-georgia { font-family: var(--font-georgia); }
+.a4-sheet.font-arial { font-family: var(--font-arial); }
+
+/* Borders */
+.a4-sheet.border-none { border: none; }
+.a4-sheet.border-thin .sheet-inner { border: 1.5px solid #1f2937; }
+.a4-sheet.border-double .sheet-inner { border: 4.5px double #1f2937; }
+
+/* 1. University Masthead */
+.masthead-group {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.univ-header-block {
+  width: 100%;
+  text-align: center;
+}
+
+.univ-name {
+  font-size: 21pt;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #000000;
+  margin: 0;
+  line-height: 1.25;
+  text-wrap: balance;
+  text-rendering: optimizeLegibility;
+}
+
+/* Headline Customization: Letter Case */
+.a4-sheet.header-caps .univ-name {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.a4-sheet.header-title .univ-name {
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
+/* Headline size is set inline from the variable control. */
+
+.univ-tagline {
+  font-size: 11pt;
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: #374151;
+  margin: 2mm 0 0 0;
+  line-height: 1.3;
+}
+
+.univ-address {
+  font-size: 9pt;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #4b5563;
+  margin: 1.5mm 0 0 0;
+  line-height: 1.3;
+}
+
+/* Its own block in the sheet's space-evenly flow, so the crest sits between
+   the masthead and the assignment rather than trailing the masthead. */
+.univ-logo-block {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.univ-logo {
+  object-fit: contain;
+  transition: height 0.15s ease;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.06));
+}
+
+/* Height is set inline from the variable crest control. */
+
+/* 2. Assignment Block */
+.assignment-block {
+  width: 100%;
+  text-align: center;
+  margin: 0;
+}
+
+.prefix-label {
+  font-size: 13.5pt;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: #374151;
+  margin: 0 0 2.5mm 0;
+}
+
+.topic-title {
+  font-style: italic;
+  font-weight: 700;
+  color: #0b1329;
+  margin: 0 auto 3mm auto;
+  max-width: 90%;
+  line-height: 1.32;
+  text-wrap: balance;
+  text-rendering: optimizeLegibility;
+}
+
+.a4-sheet.topic-md .topic-title { font-size: 19pt; }
+.a4-sheet.topic-lg .topic-title { font-size: 22pt; }
+.a4-sheet.topic-xl .topic-title { font-size: 26pt; }
+
+.course-heading {
+  font-size: 15.5pt;
+  font-weight: 700;
+  letter-spacing: 0.015em;
+  color: #0b1329;
+  margin: 0;
+  line-height: 1.3;
+}
+
+/* 3. Submission Zone */
+.submission-block {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.submitted-to-block {
+  margin-bottom: 7mm;
+  text-align: center;
+}
+
+.section-title {
+  font-size: 13pt;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #0b1329;
+  margin: 0 0 2mm 0;
+  text-align: center;
+}
+
+.submitted-to-block .person-name {
+  font-size: 13.5pt;
+  font-weight: 600;
+  color: #0b1329;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.submitted-to-block .person-dept,
+.submitted-to-block .person-univ {
+  font-size: 12pt;
+  font-weight: 400;
+  color: #374151;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.submitted-by-block {
+  width: 100%;
+  text-align: center;
+}
+
+.students-table {
+  width: 86%;
+  margin: 0 auto 3.5mm auto;
+  border-collapse: collapse;
+  font-size: 12pt;
+  border: 1.5px solid #1f2937;
+}
+
+.students-table td {
+  border: 1.5px solid #1f2937;
+  padding: 7px 16px;
+  vertical-align: middle;
+}
+
+.students-table .col-name {
+  text-align: left;
+  font-weight: 600;
+  color: #0b1329;
+  width: 58%;
+}
+
+.students-table .col-id {
+  text-align: left;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: #0b1329;
+  width: 42%;
+}
+
+.student-meta {
+  font-size: 12pt;
+  line-height: 1.55;
+  color: #1f2937;
+  font-weight: 500;
+}
+
+.student-meta p {
+  margin: 0.6mm 0;
+}
+
+#pDateWrap {
+  margin-top: 2mm;
+  font-size: 11pt;
+  font-style: italic;
+}
+
+/* ==========================================================================
+   Print Stylesheet (@media print)
+   ========================================================================== */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    width: 210mm !important;
+    height: 297mm !important;
+    overflow: hidden !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .sidebar,
+  .preview-toolbar {
+    display: none !important;
+  }
+
+  .app-layout {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .preview-area {
+    display: block !important;
+    background: transparent !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .preview-scroll {
+    padding: 0 !important;
+    display: block !important;
+    overflow: visible !important;
+  }
+
+  .a4-sheet {
+    box-shadow: none !important;
+    margin: 0 !important;
+    width: 210mm !important;
+    height: 297mm !important;
+    min-height: 297mm !important;
+    max-height: 297mm !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+    transform: none !important;
+    zoom: 1 !important;
+  }
+
+
+  .sheet-inner {
+    height: 297mm !important;
+    box-sizing: border-box !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}
+
+/* Responsive */
+
+/* Responsive -------------------------------------------------------------- */
+@media (max-width: 960px) {
+  .app-layout {
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
+  }
+
+  .sidebar {
+    width: 100%;
+    max-width: 100%;
+    min-width: 100%;
+    height: auto;
+    overflow: visible;
+    border-inline-end: none;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  /* Sticky inside a non-scrolling sidebar does nothing; the preview toolbar
+     is the bar worth keeping in reach once you scroll down to the sheet. */
+  .app-header { position: static; }
+
+  .preview-area { min-height: 0; overflow: visible; }
+
+  .preview-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+
+  .preview-scroll { padding: 1.25rem 1rem 2rem; }
+}
+
+@media (max-width: 600px) {
+  .app-header { padding: 0 12px; }
+
+  /* The badge and the save note give up their space to the three controls,
+     which wrap to a second row rather than overflowing on the narrowest
+     screens. */
+  .preview-info { display: none; }
+
+  .preview-toolbar {
+    height: auto;
+    min-height: var(--bar-h);
+    flex-wrap: wrap;
+    padding: 8px 12px;
+  }
+
+  .preview-actions {
+    flex: 1;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px;
+  }
+}
+
+/* Below this the three controls cannot share a row. Rather than leave Print
+   stranded at the left of a second row, give it the whole row. */
+@media (max-width: 400px) {
+  .preview-actions #btnPrintFloating { flex: 1 0 100%; }
+  .preview-actions #btnPrintFloating::part(button) { width: 100%; }
+}
+
+@media (max-width: 480px) {
+  /* Stacked: children must stretch across, not shrink to their content. */
+  .row, .row-date {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .row > interior-check { align-self: flex-start; }
+}
