@@ -565,6 +565,13 @@ function attachEventListeners() {
   elements.setupDone.addEventListener("click", () => {
     state.setupDone = true;
     showSetup(false);
+    /* The setup card is tall enough to scroll, so Start filling in is usually
+       pressed partway down it. The form that replaces the card inherits that
+       offset and opens halfway through itself unless the scroll is sent back.
+       Which element scrolls depends on width: the sidebar has its own
+       overflow above 960px, below that the page scrolls instead. */
+    document.getElementById("sidebar").scrollTop = 0;
+    window.scrollTo(0, 0);
     saveState();
   });
 
