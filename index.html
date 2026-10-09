@@ -72,22 +72,23 @@
           <!-- 1. University & Department -->
           <interior-panel step="1" heading="University &amp; format" open>
             <div class="stack">
-              <div class="row">
+              <div class="row row-tight">
                 <interior-dropdown id="univSelect" block label="University" value="bup"></interior-dropdown>
                 <interior-dropdown id="formatSelect" block label="Format" value="bd"></interior-dropdown>
               </div>
               <div class="field-group" data-for="mla">
                 <interior-check id="mlaTitlePage" label="Add a title page (only if your instructor asks)"></interior-check>
-                <button type="button" id="btnCopyHeading" class="btn-quiet">Copy MLA heading for your document</button>
+                <button type="button" id="btnCopyHeading" class="btn-quiet btn-block"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>Copy MLA heading for your document</button>
               </div>
-              <div data-for="bd uk">
+              <div class="field-group" data-for="bd uk">
                 <input type="file" id="crestFile" accept="image/*" hidden>
-                <button type="button" id="btnCrest" class="btn-quiet">Upload your own crest</button>
+                <button type="button" id="btnCrest" class="btn-quiet btn-block"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="M17 8l-5-5-5 5"></path><path d="M12 3v12"></path></svg>Upload your own crest</button>
+                <p class="field-note">PNG or SVG. Replaces the crest on the cover above.</p>
               </div>
               <interior-field id="univNameInput" label="University headline"
                 value="BANGLADESH UNIVERSITY OF PROFESSIONALS"></interior-field>
 
-              <div class="row" data-for="bd">
+              <div class="row row-tight" data-for="bd">
                 <interior-dropdown id="headerCaseSelect" block label="Headline case" value="header-caps"
                   items='[{"value":"header-caps","label":"ALL CAPS"},{"value":"header-title","label":"Title Case"}]'></interior-dropdown>
                 <div class="field-group">
@@ -215,9 +216,9 @@
         </interior-accordion>
 
         <div class="field-group">
-          <div class="row">
-            <button type="button" class="btn-quiet" id="btnShare">Copy a link to this cover</button>
-            <button type="button" class="btn-quiet" id="btnQr" aria-expanded="false" aria-controls="shareQr">Show QR code</button>
+          <div class="row row-tight">
+            <button type="button" class="btn-quiet" id="btnShare"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"></path><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"></path></svg>Copy link</button>
+            <button type="button" class="btn-quiet" id="btnQr" aria-expanded="false" aria-controls="shareQr"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><path d="M14 14h3v3h-3zM20 14h1M14 20h3M20 20h1"></path></svg>QR code</button>
           </div>
           <p class="field-note" id="shareNote">Classmates who open it get this cover, ready to change the names and IDs.</p>
           <figure class="share-qr hidden" id="shareQr">

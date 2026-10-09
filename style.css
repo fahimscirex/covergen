@@ -315,6 +315,10 @@ interior-accordion {
   transition: background-color 0.15s ease, color 0.15s ease, transform 0.1s var(--ease-cell);
 }
 .btn-quiet:hover { background: var(--sub); color: var(--ink); }
+
+/* Fills its slot, so a lone button lines up with the fields above and below
+   instead of floating at its own width. */
+.btn-block { width: 100%; }
 .btn-quiet:active { transform: scale(0.98); }
 .btn-quiet:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
@@ -976,6 +980,10 @@ interior-accordion {
   .preview-actions #btnPrintFloating::part(button) { width: 100%; }
 }
 
+/* A pair of short controls reads better side by side than stacked, even on a
+   phone: the two belong together and neither needs the full width. */
+.row-tight { gap: 8px; }
+
 @media (max-width: 480px) {
   /* Stacked: children must stretch across, not shrink to their content. */
   .row, .row-date {
@@ -984,4 +992,12 @@ interior-accordion {
     gap: 10px;
   }
   .row > interior-check { align-self: flex-start; }
+
+  /* Declared after .row above, so the pair wins on source order. */
+  .row-tight {
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 8px;
+  }
+  .row-tight > * { flex: 1 1 0; min-width: 0; }
 }

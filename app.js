@@ -335,10 +335,15 @@ function universityDefaults(data) {
 }
 
 function populateDepartmentDropdown() {
+  // Sorted by name, not by the faculty order the university's own site uses:
+  // nobody scanning for "Marketing" knows which faculty to look under first.
+  // Only this display list is sorted. The flat department array in
+  // directoryTeachers() is positional, indexed by each teacher's record, and
+  // sorting that one would relabel every teacher's department.
   const items = (univ?.faculties || []).flatMap(f => f.departments.map(d => {
     const label = d.replace(/^Department of /, "");
     return { value: d, label, full: `${label} · ${f.short}` };
-  }));
+  })).sort((a, b) => a.label.localeCompare(b.label, "en"));
   items.push({ value: MANUAL, label: "Typed manually", full: "Not listed? Type it manually" });
   elements.deptPreset.items = items;
   // A saved department the directory does not list (renamed, or typed by

@@ -30,13 +30,15 @@ footer.bar { border-bottom: 0; border-top: 1px solid var(--hairline); }
 .bar a { color: var(--ink-2); text-decoration: none; font-size: 13px; }
 .bar a:hover { color: var(--ink); text-decoration: underline; }
 
-.home {
+.bar .home {
   font-family: 'Bitrimus', var(--font-ui);
-  font-size: 34px;
-  color: var(--ink) !important;
-  text-decoration: none !important;
+  font-size: 30px;
+  line-height: 1;
+  color: var(--ink);
+  text-decoration: none;
   letter-spacing: 0.06em;
 }
+.bar .home:hover { text-decoration: none; }
 
 @font-face {
   font-family: 'Bitrimus';
@@ -70,7 +72,7 @@ p { margin-bottom: 14px; color: var(--ink-2); }
 
 a { color: var(--accent); }
 
-.cta {
+.bar .cta, .cta {
   display: inline-block;
   padding: 8px 14px;
   border-radius: var(--r-sm);
