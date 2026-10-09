@@ -10,6 +10,26 @@
    anyone else's directory. */
 const UNIVERSITIES = [
   { id: "bup", short: "BUP", name: "Bangladesh University of Professionals" },
+  { id: "aiub", short: "AIUB", name: "American International University-Bangladesh" },
+  { id: "aust", short: "AUST", name: "Ahsanullah University of Science and Technology" },
+  { id: "bau", short: "BAU", name: "Bangladesh Agricultural University" },
+  { id: "buet", short: "BUET", name: "Bangladesh University of Engineering and Technology" },
+  { id: "butex", short: "BUTEX", name: "Bangladesh University of Textiles" },
+  { id: "cu", short: "CU", name: "University of Chittagong" },
+  { id: "cuet", short: "CUET", name: "Chittagong University of Engineering & Technology" },
+  { id: "diu", short: "DIU", name: "Daffodil International University" },
+  { id: "du", short: "DU", name: "University of Dhaka" },
+  { id: "ewu", short: "EWU", name: "East West University" },
+  { id: "iub", short: "IUB", name: "Independent University, Bangladesh" },
+  { id: "iut", short: "IUT", name: "Islamic University of Technology" },
+  { id: "jnu", short: "JnU", name: "Jagannath University" },
+  { id: "ju", short: "JU", name: "Jahangirnagar University" },
+  { id: "ku", short: "KU", name: "Khulna University" },
+  { id: "kuet", short: "KUET", name: "Khulna University of Engineering & Technology" },
+  { id: "nsu", short: "NSU", name: "North South University" },
+  { id: "ruet", short: "RUET", name: "Rajshahi University of Engineering & Technology" },
+  { id: "uiu", short: "UIU", name: "United International University" },
+  { id: "ulab", short: "ULAB", name: "University of Liberal Arts Bangladesh" },
 ];
 
 // Sentinel dropdown value: the department is typed rather than picked.
@@ -219,6 +239,9 @@ async function showUniversity(id, fill) {
     state.logo = univ.logo;
     state.teacherAffiliation = univ.name;
     state.studentDept = univ.faculties[0]?.departments[0] || "";
+    // The last teacher belonged to the last university.
+    state.teacherName = "";
+    state.teacherDept = state.studentDept;
     state.deptManual = false;
   }
   populateDepartmentDropdown();

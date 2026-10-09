@@ -63,14 +63,17 @@ def title(s):
 
 
 def person(s):
-    """Some directories shout names in ALL CAPS; a cover page should not."""
     s = clean(s)
+    # The app prefixes the designation ("Asst. Prof. ..."), so courtesy titles
+    # would double up. Trailing "(nickname)", ", PhD" and the "-2" some sites
+    # use to tell namesakes apart don't belong on a cover either.
+    s = re.sub(r"^(?:(?:Mr|Mrs|Ms|Miss|Engr)(?:\.\s*|\s+))+", "", s, flags=re.I)
+    s = re.sub(r"\s*[(\[][^)\]]*[)\]]?$", "", s)
+    s = re.sub(r"(?:,?\s+Ph\.?\s?D\.?|\s*-\s*\d+)$", "", s, flags=re.I)
+    # Some directories shout names in ALL CAPS; a cover page should not.
     if s.isupper() and len(s) > 3:
         s = re.sub(r"(^|[\s.\-'])([a-z])", lambda m: m[1] + m[2].upper(), s.lower())
-    # The app prefixes the designation ("Asst. Prof. ..."), so courtesy titles
-    # would double up; "-2" is how some sites tell namesakes apart.
-    s = re.sub(r"^(?:(?:Mr|Mrs|Ms|Miss|Engr)\.?\s+)+", "", s, flags=re.I)
-    return re.sub(r"\s*-\s*\d+$", "", s)
+    return s
 
 
 def write(uid, *, name, tagline, address, logo, source, faculties, teachers):
