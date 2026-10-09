@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BUP Assignment Cover Page Generator</title>
+  <title>Assignment Cover Page Generator</title>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
   <link rel="apple-touch-icon" href="assets/favicon-180.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -38,6 +38,7 @@
           <!-- 1. University & Department -->
           <interior-panel step="1" heading="University &amp; department" open>
             <div class="stack">
+              <interior-dropdown id="univSelect" block label="University" value="bup"></interior-dropdown>
               <interior-field id="univNameInput" label="University headline"
                 value="BANGLADESH UNIVERSITY OF PROFESSIONALS"></interior-field>
 
@@ -63,11 +64,8 @@
                 <interior-check id="showAddress" label="Show address on cover" checked></interior-check>
               </div>
 
-              <div class="row">
-                <interior-dropdown id="facultyPreset" block label="Faculty" value="FBS"
-                  items='[{"value":"FBS","label":"FBS","full":"Faculty of Business Studies"},{"value":"FASS","label":"FASS","full":"Faculty of Arts &amp; Social Sciences"},{"value":"FST","label":"FST","full":"Faculty of Science &amp; Technology"},{"value":"FSSS","label":"FSSS","full":"Faculty of Security &amp; Strategic Studies"}]'></interior-dropdown>
-                <interior-dropdown id="deptPreset" block label="Department"></interior-dropdown>
-              </div>
+              <interior-dropdown id="deptPreset" block label="Your department"></interior-dropdown>
+              <interior-field id="studentDept" label="Department, as printed" hidden></interior-field>
             </div>
           </interior-panel>
 
@@ -89,8 +87,8 @@
           <interior-panel step="3" heading="Submitted to" open>
             <div class="stack">
               <interior-combobox id="teacherSearch" limit="8"
-                label="Search the BUP faculty directory"
-                placeholder="Search 387 BUP teachers by name or department"></interior-combobox>
+                label="Search the faculty directory"
+                placeholder="Search teachers by name or department"></interior-combobox>
               <p class="field-note">Pick a name to fill the three fields below, or type them yourself.</p>
 
               <interior-field id="teacherName" label="Teacher name" value="Asst. Prof. Anamika Dey"></interior-field>
@@ -125,10 +123,7 @@
                 <interior-field id="studentSection" label="Section" value="A"></interior-field>
                 <interior-field id="studentSession" label="Session" value="2022-2023"></interior-field>
               </div>
-              <div class="row">
-                <interior-field id="studentDept" label="Student department" value="Department of Marketing"></interior-field>
-                <interior-field id="studentIntake" label="Intake / batch (optional)"></interior-field>
-              </div>
+              <interior-field id="studentIntake" label="Intake / batch (optional)"></interior-field>
 
               <div class="row row-date">
                 <label class="native-field">
@@ -208,7 +203,7 @@
             </div>
 
             <div class="univ-logo-block">
-              <img src="assets/bup_logo.svg" alt="Bangladesh University of Professionals Crest" class="univ-logo logo-md" id="pLogo">
+              <img alt="University crest" class="univ-logo logo-md" id="pLogo">
             </div>
 
             <div class="assignment-block">
@@ -259,7 +254,6 @@
   <script src="components/interior/combobox.js"></script>
   <script src="components/interior/stepper.js"></script>
   <script src="assets/cover-pdf.js"></script>
-  <script src="assets/faculty_data.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

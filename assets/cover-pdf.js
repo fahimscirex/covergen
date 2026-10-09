@@ -110,10 +110,9 @@ window.BUPCoverPDF = (() => {
     };
   }
 
-  async function crest(pdf) {
-    const res = await fetch("assets/bup_logo.svg");
-    const svg = await res.text();
-    const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+  // The crest may be SVG or PNG; either way it goes through a canvas.
+  async function crest(pdf, src) {
+    const url = URL.createObjectURL(await (await fetch(src)).blob());
     try {
       const img = await new Promise((resolve, reject) => {
         const i = new Image();
@@ -302,7 +301,7 @@ window.BUPCoverPDF = (() => {
       faces: faces(fonts, StandardFonts, state.font),
       black: rgb(0, 0, 0),
       rule: rgb(0.12, 0.16, 0.22),
-      crest: await crest(pdf),
+      crest: await crest(pdf, state.logo),
     };
 
     await buildCover(pdf, state, StandardFonts, fontFor);

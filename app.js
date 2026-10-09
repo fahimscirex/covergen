@@ -1,55 +1,30 @@
 /**
- * BUP Assignment Cover Page Generator
+ * Assignment Cover Page Generator
  * Original Format with Optimized Academic Typography
  * Pure Vanilla JS, Zero dependencies.
  */
 
-const BUP_FACULTIES = {
-  FBS: {
-    short: "FBS",
-    full: "Faculty of Business Studies",
-    departments: [
-      { short: "Marketing", full: "Dept. of Marketing", val: "Department of Marketing" },
-      { short: "AIS", full: "Dept. of Accounting & Information Systems", val: "Department of Accounting & Information Systems (AIS)" },
-      { short: "Finance", full: "Dept. of Finance & Banking", val: "Department of Finance & Banking" },
-      { short: "Management", full: "Dept. of Management Studies", val: "Department of Management Studies" },
-      { short: "General BBA", full: "Dept. of Business Administration", val: "Department of Business Administration in General" }
-    ]
-  },
-  FASS: {
-    short: "FASS",
-    full: "Faculty of Arts & Social Sciences",
-    departments: [
-      { short: "Economics", full: "Dept. of Economics", val: "Department of Economics" },
-      { short: "English", full: "Dept. of English", val: "Department of English" },
-      { short: "Sociology", full: "Dept. of Sociology", val: "Department of Sociology" },
-      { short: "Pub. Admin", full: "Dept. of Public Administration", val: "Department of Public Administration" },
-      { short: "Dev. Studies", full: "Dept. of Development Studies", val: "Department of Development Studies" },
-      { short: "Disaster Mgt.", full: "Dept. of Disaster & Human Security", val: "Department of Disaster & Human Security Management" }
-    ]
-  },
-  FST: {
-    short: "FST",
-    full: "Faculty of Science & Technology",
-    departments: [
-      { short: "CSE", full: "Dept. of Computer Science & Engineering", val: "Department of Computer Science & Engineering (CSE)" },
-      { short: "ICT", full: "Dept. of Information & Communication Technology", val: "Department of Information & Communication Technology (ICT)" },
-      { short: "Env. Science", full: "Dept. of Environmental Science", val: "Department of Environmental Science" }
-    ]
-  },
-  FSSS: {
-    short: "FSSS",
-    full: "Faculty of Security & Strategic Studies",
-    departments: [
-      { short: "IR", full: "Dept. of International Relations", val: "Department of International Relations (IR)" },
-      { short: "Law", full: "Dept. of Law", val: "Department of Law (LL.B)" },
-      { short: "Peace & Conflict", full: "Dept. of Peace, Conflict & Human Rights", val: "Department of Peace, Conflict & Human Rights" },
-      { short: "MCJ", full: "Dept. of Mass Communication & Journalism", val: "Department of Mass Communication & Journalism" }
-    ]
-  }
+/* The picker's universities. Each has a data/<id>.json written by
+   scrapers/<id>.py, holding its faculties, departments and teachers. A file is
+   fetched only when its university is picked, so a BUP student never downloads
+   anyone else's directory. */
+const UNIVERSITIES = [
+  { id: "bup", short: "BUP", name: "Bangladesh University of Professionals" },
+];
+
+// Sentinel dropdown value: the department is typed rather than picked.
+const MANUAL = "__manual";
+
+// "Asst. Prof. Jane Doe" is how covers address a teacher.
+const TITLE_PREFIX = {
+  "Professor": "Prof.", "Distinguished Professor": "Prof.",
+  "Associate Professor": "Assoc. Prof.", "Assistant Professor": "Asst. Prof.",
+  "Senior Lecturer": "Sr. Lecturer", "Lecturer": "Lecturer",
 };
 
 const DEFAULT_DATA = {
+  univ: "bup",
+  logo: "assets/bup_logo.svg",
   univName: "BANGLADESH UNIVERSITY OF PROFESSIONALS",
   headerCase: "header-caps",
   headerPt: 21,
@@ -57,8 +32,7 @@ const DEFAULT_DATA = {
   showTagline: true,
   univAddress: "Mirpur Cantonment, Dhaka-1216, Bangladesh",
   showAddress: true,
-  faculty: "FBS",
-  department: "Department of Marketing",
+  deptManual: false,
   prefix: "Assignment on",
   topic: "Key Concepts of Auditing",
   courseTitle: "Taxation and Auditing",
@@ -86,6 +60,8 @@ const DEFAULT_DATA = {
 const STORAGE_KEY = "bup_cover_original_v4";
 
 let state = { ...DEFAULT_DATA };
+let univ = null;          // the picked university's data/<id>.json, once loaded
+const univFetches = {};
 let currentZoom = 1.0;
 
 const elements = {
@@ -96,7 +72,7 @@ const elements = {
   showTagline: document.getElementById("showTagline"),
   univAddressInput: document.getElementById("univAddressInput"),
   showAddress: document.getElementById("showAddress"),
-  facultyPreset: document.getElementById("facultyPreset"),
+  univSelect: document.getElementById("univSelect"),
   deptPreset: document.getElementById("deptPreset"),
   assignmentPrefix: document.getElementById("assignmentPrefix"),
   assignmentTopic: document.getElementById("assignmentTopic"),
@@ -152,11 +128,11 @@ const elements = {
 
 function init() {
   loadSavedState();
-  populateDepartmentDropdown();
+  elements.univSelect.items = UNIVERSITIES.map(u => ({ value: u.id, label: u.short, full: `${u.name} (${u.short})` }));
   syncFormFromState();
   renderMembersInputs();
-  setupFacultyAutocomplete();
   updatePreview();
+  showUniversity(state.univ, false);
   attachEventListeners();
   autoScalePreviewOnResize();
 }
@@ -219,15 +195,51 @@ function showSaved() {
   }, 1600);
 }
 
+function loadUniversity(id) {
+  univFetches[id] ||= fetch(`data/${id}.json`)
+    .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+    .catch(e => { delete univFetches[id]; throw e; });
+  return univFetches[id];
+}
+
+/* `fill` is a fresh pick from the dropdown: it overwrites the masthead and the
+   affiliation. On page load the saved (possibly hand-edited) values win. */
+async function showUniversity(id, fill) {
+  let data = null;
+  try { data = await loadUniversity(id); }
+  catch (e) { console.warn(`Could not load data/${id}.json:`, e); }
+  if (state.univ !== id) return; // another university was picked meanwhile
+  univ = data;
+
+  if (fill && univ) {
+    state.univName = univ.name.toUpperCase();
+    state.univTagline = univ.tagline;
+    state.showTagline = !!univ.tagline;
+    state.univAddress = univ.address;
+    state.logo = univ.logo;
+    state.teacherAffiliation = univ.name;
+    state.studentDept = univ.faculties[0]?.departments[0] || "";
+    state.deptManual = false;
+  }
+  populateDepartmentDropdown();
+  populateTeacherSearch();
+  syncFormFromState();
+  updatePreview();
+  if (fill) saveState();
+}
+
 function populateDepartmentDropdown() {
-  const selectedFaculty = elements.facultyPreset.value || state.faculty || "FBS";
-  const faculty = BUP_FACULTIES[selectedFaculty];
-  const items = faculty
-    ? faculty.departments.map(d => ({ value: d.val, label: d.short, full: d.full }))
-    : [];
+  const items = (univ?.faculties || []).flatMap(f => f.departments.map(d => {
+    const label = d.replace(/^Department of /, "");
+    return { value: d, label, full: `${label} · ${f.short}` };
+  }));
+  items.push({ value: MANUAL, label: "Typed manually", full: "Not listed? Type it manually" });
   elements.deptPreset.items = items;
-  const match = items.find(i => i.value === state.department);
-  elements.deptPreset.value = (match || items[0] || {}).value || "";
+  // A saved department the directory does not list (renamed, or typed by
+  // hand) stays as typed rather than being swapped for a listed one.
+  if (!items.some(i => i.value === state.studentDept)) state.deptManual = true;
+  elements.deptPreset.value = state.deptManual ? MANUAL : state.studentDept;
+  elements.studentDept.hidden = !state.deptManual;
 }
 
 function syncFormFromState() {
@@ -241,7 +253,7 @@ function syncFormFromState() {
   if (elements.univAddressInput) elements.univAddressInput.value = state.univAddress || "";
   if (elements.showAddress) elements.showAddress.checked = !!state.showAddress;
 
-  elements.facultyPreset.value = state.faculty || "FBS";
+  elements.univSelect.value = state.univ;
   elements.assignmentPrefix.value = state.prefix || "Assignment on";
   elements.assignmentTopic.value = state.topic || "";
   elements.courseTitle.value = state.courseTitle || "";
@@ -396,36 +408,41 @@ function updatePreview() {
 
   elements.pUnivName.style.fontSize = `${state.headerPt || 21}pt`;
   elements.a4Sheet.className = `a4-sheet ${state.font || "font-times"} ${state.headerCase || "header-caps"} ${state.topicSize || "topic-lg"} ${state.border || "border-none"} ${state.spacing || "spacing-balanced"}`;
+  if (elements.pLogo.getAttribute("src") !== state.logo) elements.pLogo.src = state.logo;
   elements.pLogo.style.height = `${state.logoPx || 112}px`;
 }
 
 function attachEventListeners() {
-  elements.facultyPreset.addEventListener("change", (e) => {
-    state.faculty = e.target.value;
-    const first = BUP_FACULTIES[state.faculty]?.departments[0];
-    if (first) state.department = first.val;
-    populateDepartmentDropdown();
-    if (first) {
-      state.studentDept = first.val;
-      elements.studentDept.value = first.val;
+  elements.univSelect.addEventListener("change", (e) => {
+    state.univ = e.target.value;
+    showUniversity(state.univ, true);
+  });
+
+  elements.deptPreset.addEventListener("change", (e) => {
+    state.deptManual = e.target.value === MANUAL;
+    elements.studentDept.hidden = !state.deptManual;
+    if (!state.deptManual) {
+      state.studentDept = e.target.value;
+      elements.studentDept.value = state.studentDept;
+      if (!state.teacherDept || state.teacherDept.startsWith("Department")) {
+        state.teacherDept = state.studentDept;
+        elements.teacherDept.value = state.teacherDept;
+      }
     }
     updatePreview();
     saveState();
   });
 
-  elements.deptPreset.addEventListener("change", (e) => {
-    const val = e.target.value;
-    if (val) {
-      state.department = val;
-      state.studentDept = val;
-      elements.studentDept.value = val;
-      if (!elements.teacherDept.value || elements.teacherDept.value.startsWith("Department")) {
-        state.teacherDept = val;
-        elements.teacherDept.value = val;
-      }
-      updatePreview();
-      saveState();
-    }
+  elements.teacherSearch.addEventListener("pick", (e) => {
+    const t = e.detail.item.data;
+    state.teacherName = t.name;
+    state.teacherDept = t.dept || state.teacherDept;
+    state.teacherAffiliation = univ?.name || state.teacherAffiliation;
+    elements.teacherName.value = state.teacherName;
+    elements.teacherDept.value = state.teacherDept;
+    elements.teacherAffiliation.value = state.teacherAffiliation;
+    updatePreview();
+    saveState();
   });
 
   const bind = (el, key) => {
@@ -564,10 +581,10 @@ function attachEventListeners() {
   elements.btnReset.addEventListener("confirm", () => {
     localStorage.removeItem(STORAGE_KEY);
     state = JSON.parse(JSON.stringify(DEFAULT_DATA));
-    populateDepartmentDropdown();
     syncFormFromState();
     renderMembersInputs();
     updatePreview();
+    showUniversity(state.univ, false);
   });
 
   // Clears what changes per assignment. Section, session, department and
@@ -626,31 +643,26 @@ function escapeHtml(str) {
 
 document.addEventListener("DOMContentLoaded", init);
 
-// Setup search & autocomplete for 387 BUP faculty members
-// Faculty directory search, now an <interior-combobox>: the component owns the
+// Serves repeat visits from the browser's cache; see sw.js.
+if ("serviceWorker" in navigator && location.protocol === "https:") {
+  navigator.serviceWorker.register("sw.js").catch((e) => console.warn("No offline cache:", e));
+}
+
+// Faculty directory search, an <interior-combobox>: the component owns the
 // filtering UI, keyboard contract and highlight; this owns what a pick means.
-function setupFacultyAutocomplete() {
+function populateTeacherSearch() {
   const box = elements.teacherSearch;
-  if (!box) return;
-
-  box.items = (window.BUP_FACULTY_DATA || []).map((f) => ({
-    value: f.formattedName || f.name,
-    label: f.formattedName || f.name,
-    sub: [f.designation, f.department].filter(Boolean).join(" / "),
-    data: f,
-  }));
-
-  box.addEventListener("pick", (e) => {
-    const f = e.detail.item.data;
-    state.teacherName = f.formattedName || f.name;
-    state.teacherDept = f.department || state.teacherDept;
-    state.teacherAffiliation = "Bangladesh University of Professionals";
-    elements.teacherName.value = state.teacherName;
-    elements.teacherDept.value = state.teacherDept;
-    elements.teacherAffiliation.value = state.teacherAffiliation;
-    updatePreview();
-    saveState();
+  const depts = (univ?.faculties || []).flatMap(f => f.departments);
+  box.items = (univ?.teachers || []).map(([name, t, d]) => {
+    const title = univ.titles[t];
+    const prefix = /^(Dr|Prof)\b/i.test(name) ? "" : TITLE_PREFIX[title];
+    const label = prefix ? `${prefix} ${name}` : name;
+    return { value: label, label, sub: [title, depts[d]].filter(Boolean).join(" / "), data: { name: label, dept: depts[d] } };
   });
+  const short = UNIVERSITIES.find(u => u.id === state.univ)?.short || "";
+  box.$input.placeholder = univ
+    ? `Search ${univ.teachers.length} ${short} teachers by name or department`
+    : "Directory unavailable, type the teacher below";
 }
 
 /* Cover page + the student's own assignment PDF, as one file.

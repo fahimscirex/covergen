@@ -1,16 +1,18 @@
 # covergen
 
-Lays out the assignment cover sheet BUP students are asked to hand in, with a
-live A4 preview and a one-click vector PDF.
+Lays out the assignment cover sheet Bangladeshi university students are asked
+to hand in, with a live A4 preview and a one-click vector PDF. BUP is the
+default; other universities are a dropdown away.
 
-Unofficial. A student-made tool, not affiliated with or endorsed by Bangladesh
-University of Professionals. The crest belongs to the university and is
-included only so the printed sheet matches what departments expect.
+Unofficial. A student-made tool, not affiliated with or endorsed by any of the
+universities it lists. Each crest belongs to its university and is included
+only so the printed sheet matches what departments expect.
 
 ## What it does
 
 - True 210x297mm preview that prints to vector PDF with selectable text
-- Search across 387 BUP teachers to fill in the Submitted To block
+- Pick your university and department; type the department instead if it is not listed
+- Search the university's teachers to fill in the Submitted To block
 - Individual or group submissions
 - Merge the cover with your own assignment PDF into a single file
 - Remembers everything in `localStorage`, so next week you only change the topic
@@ -31,6 +33,30 @@ No build step and no runtime dependencies.
 
 Settings > Pages > Deploy from a branch > `main` > `/ (root)`. It is a static
 site, so that is the whole setup.
+
+## Faculty data
+
+`data/<id>.json` holds one university's faculties, departments and teachers,
+plus its masthead text and crest path. Teachers are stored as
+`[name, titleIndex, departmentIndex]` rows to keep the files small. The app
+fetches a file only when its university is picked.
+
+Each file is written by `scrapers/<id>.py` from the university's own website:
+
+```bash
+uv run scrapers/bup.py
+```
+
+`scrapers/common.py` validates every scrape (each teacher's department must be
+listed, no empty result) before writing. To add a university, write a scraper,
+put its crest in `data/logos/`, and add it to `UNIVERSITIES` in `app.js`.
+
+## Caching
+
+GitHub Pages only lets browsers cache for 10 minutes, so `sw.js` caches every
+file on the first visit and serves repeat visits without touching the network.
+**Bump `VERSION` in `sw.js` whenever a deploy changes a served file**, or
+returning visitors keep the old copy.
 
 ## UI components
 
