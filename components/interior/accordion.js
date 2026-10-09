@@ -58,6 +58,11 @@
       font: 600 var(--text-sm, 11.5px)/1 var(--font-ui, inherit);
       font-variant-numeric: tabular-nums;
     }
+
+    /* display:grid above outranks the UA [hidden] rule, and the page's own
+       [hidden] fix cannot cross the shadow boundary. A panel with no step
+       would otherwise show an empty chip. */
+    .num[hidden] { display: none; }
     .title {
       flex: 1;
       min-width: 0;

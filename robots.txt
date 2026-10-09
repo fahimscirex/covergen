@@ -1,0 +1,8 @@
+# Everything here is public and free to read, including by AI assistants:
+# GPTBot, ClaudeBot, PerplexityBot and Google-Extended are all welcome.
+# A shared cover lives in the URL fragment (#s=), which never reaches a
+# server and so needs no crawl rule.
+User-agent: *
+Allow: /
+
+Sitemap: https://covergen.scirex.me/sitemap.xml

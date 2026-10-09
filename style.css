@@ -321,6 +321,63 @@ interior-accordion {
 .form-actions-bottom { display: flex; gap: 10px; }
 .form-actions-bottom interior-hold-confirm { flex: 1; }
 
+/* About and FAQ: real content for students who scroll, and the only prose a
+   crawler or an AI assistant can read on this page. Kept inside the sidebar
+   so it costs the app no layout. */
+.about {
+  padding: 0 14px 20px;
+}
+
+.prose h2 {
+  font-size: 15px;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  margin-bottom: 8px;
+}
+
+.prose h3 {
+  font-size: 13px;
+  margin: 18px 0 6px;
+  color: var(--ink);
+}
+
+.prose h4 {
+  font-size: var(--text);
+  font-weight: 600;
+  margin: 14px 0 4px;
+  color: var(--ink);
+}
+
+.prose p {
+  font-size: var(--text);
+  line-height: 1.55;
+  color: var(--ink-2);
+  margin-bottom: 8px;
+}
+
+.univ-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 8px 0 10px;
+}
+
+.univ-links a {
+  display: block;
+  padding: 4px 8px;
+  border-radius: var(--r-xs);
+  background: var(--sub);
+  box-shadow: var(--shadow-cap);
+  color: var(--ink-2);
+  font-size: 12px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.univ-links a:hover { color: var(--ink); background: var(--well); }
+.univ-links a span { display: none; }
+
 /* Preview ----------------------------------------------------------------- */
 .preview-area {
   flex: 1;

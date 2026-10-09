@@ -5,7 +5,7 @@
  * The catch: nobody sees a deploy until VERSION changes. Bump it in any commit
  * that changes a served file; the new worker then drops the old cache.
  */
-const VERSION = "2026-10-09.7";
+const VERSION = "2026-10-10.1";
 
 self.addEventListener("install", () => self.skipWaiting());
 

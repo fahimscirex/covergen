@@ -1,8 +1,11 @@
 # covergen
 
 Lays out the assignment cover sheet Bangladeshi university students are asked
-to hand in, with a live A4 preview and a one-click vector PDF. BUP is the
-default; other universities are a dropdown away.
+to hand in, with a live A4 preview and a one-click vector PDF. Twenty-four
+universities, each with its own crest, masthead, departments and teachers, and
+any other can be typed in.
+
+Live at **[covergen.scirex.me](https://covergen.scirex.me)**.
 
 Unofficial. A student-made tool, not affiliated with or endorsed by any of the
 universities it lists. Each crest belongs to its university and is included
@@ -67,7 +70,23 @@ uv run scrapers/bup.py
 
 `scrapers/common.py` validates every scrape (each teacher's department must be
 listed, no empty result) before writing. To add a university, write a scraper,
-put its crest in `data/logos/`, and add it to `UNIVERSITIES` in `app.js`.
+put its crest in `data/logos/`, add it to `UNIVERSITIES` in `app.js` and to the
+same list in `build.py`, then re-run the build.
+
+## Build
+
+The app is one page, which leaves search engines and AI assistants nothing to
+read for "BUET assignment cover page". `build.py` writes the crawlable half of
+the site from `data/`: a page per university under `/u/<id>/`, plus
+`robots.txt`, `sitemap.xml` and `llms.txt`, and it refreshes the university
+list inside `index.html`.
+
+```bash
+uv run python build.py
+```
+
+Its output is committed, so GitHub Pages still serves plain static files and
+the app itself still needs no build step. Re-run it after changing `data/`.
 
 ## Caching
 

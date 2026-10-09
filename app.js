@@ -189,8 +189,22 @@ const elements = {
   pDateValue: document.getElementById("pDateValue")
 };
 
+/* A landing page under /u/<id>/ links in as /?u=<id>. Preselect that
+   university, but leave the format question alone: picking a university is not
+   the same as having set the cover up, and a student arriving this way has
+   still chosen nothing else. A returning student with their own saved cover
+   keeps it; only the pre-setup default moves. */
+function readUniversityLink() {
+  const id = new URLSearchParams(location.search).get("u");
+  if (!id || !UNIVERSITIES.some(u => u.id === id)) return;
+  history.replaceState(null, "", location.pathname + location.hash);
+  if (state.setupDone) return;
+  state.univ = id;
+}
+
 async function init() {
   loadSavedState();
+  readUniversityLink();
   const shared = await readShareLink();
   const univItems = UNIVERSITIES.map(u => ({ value: u.id, label: u.short, full: `${u.name} (${u.short})` }));
   elements.univSelect.items = univItems;

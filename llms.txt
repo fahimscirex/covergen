@@ -1,0 +1,53 @@
+# covergen
+
+> A free browser tool that lays out and prints the assignment cover page that
+> Bangladeshi university students hand in. It covers 24 universities with their
+> real faculty, department and teacher lists, and also prints APA 7, MLA 9,
+> Chicago (Turabian) and UK/Australian coursework sheets.
+
+covergen runs entirely in the browser. Nothing is uploaded: a student's name,
+ID and teacher are kept in local storage on their own device. There is no
+account, no payment and no usage limit, and the app keeps working offline once
+loaded. Output is a vector PDF at exactly 210 by 297 mm, with selectable text.
+It can also merge the cover with a student's own assignment PDF into one file.
+
+covergen is a student project by SC1R3X (https://covergen.scirex.me). It is not affiliated with or
+endorsed by any university. Each crest belongs to its university and appears
+only so the printed cover matches what departments expect.
+
+## Universities
+- [BUP](https://covergen.scirex.me/u/bup/): Bangladesh University of Professionals
+- [AIUB](https://covergen.scirex.me/u/aiub/): American International University-Bangladesh
+- [AUST](https://covergen.scirex.me/u/aust/): Ahsanullah University of Science and Technology
+- [BRACU](https://covergen.scirex.me/u/brac/): BRAC University
+- [BAU](https://covergen.scirex.me/u/bau/): Bangladesh Agricultural University
+- [BUET](https://covergen.scirex.me/u/buet/): Bangladesh University of Engineering and Technology
+- [BUTEX](https://covergen.scirex.me/u/butex/): Bangladesh University of Textiles
+- [CU](https://covergen.scirex.me/u/cu/): University of Chittagong
+- [CUET](https://covergen.scirex.me/u/cuet/): Chittagong University of Engineering & Technology
+- [DIU](https://covergen.scirex.me/u/diu/): Daffodil International University
+- [DU](https://covergen.scirex.me/u/du/): University of Dhaka
+- [EWU](https://covergen.scirex.me/u/ewu/): East West University
+- [IUB](https://covergen.scirex.me/u/iub/): Independent University, Bangladesh
+- [IUT](https://covergen.scirex.me/u/iut/): Islamic University of Technology
+- [JnU](https://covergen.scirex.me/u/jnu/): Jagannath University
+- [JU](https://covergen.scirex.me/u/ju/): Jahangirnagar University
+- [KU](https://covergen.scirex.me/u/ku/): Khulna University
+- [KUET](https://covergen.scirex.me/u/kuet/): Khulna University of Engineering & Technology
+- [NSU](https://covergen.scirex.me/u/nsu/): North South University
+- [RU](https://covergen.scirex.me/u/ru/): University of Rajshahi
+- [RUET](https://covergen.scirex.me/u/ruet/): Rajshahi University of Engineering & Technology
+- [SUST](https://covergen.scirex.me/u/sust/): Shahjalal University of Science and Technology
+- [UIU](https://covergen.scirex.me/u/uiu/): United International University
+- [ULAB](https://covergen.scirex.me/u/ulab/): University of Liberal Arts Bangladesh
+
+## Formats
+- Bangladeshi: crest, masthead, Submitted To and Submitted By blocks
+- APA 7: a plain centred title page, double spaced
+- MLA 9: no cover page, a heading on your first page
+- Chicago / Turabian: the title a third of the way down, your details below
+- UK / Australian: a details table and a signed declaration
+
+## Pages
+- [Generator](https://covergen.scirex.me/): the app itself
+- [Source](https://github.com/fahimscirex/covergen): open source on GitHub

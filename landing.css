@@ -1,0 +1,126 @@
+/* The crawlable pages under /u/. They share tokens.css with the app so the
+   two never drift apart, but they are plain documents: no components, no
+   JavaScript, readable the moment the HTML lands. */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.6;
+  letter-spacing: var(--track);
+  background: var(--bezel);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 60px;
+  padding: 0 20px;
+  background: var(--bar-bg);
+  border-bottom: 1px solid var(--hairline);
+}
+
+footer.bar { border-bottom: 0; border-top: 1px solid var(--hairline); }
+
+.bar a { color: var(--ink-2); text-decoration: none; font-size: 13px; }
+.bar a:hover { color: var(--ink); text-decoration: underline; }
+
+.home {
+  font-family: 'Bitrimus', var(--font-ui);
+  font-size: 34px;
+  color: var(--ink) !important;
+  text-decoration: none !important;
+  letter-spacing: 0.06em;
+}
+
+@font-face {
+  font-family: 'Bitrimus';
+  src: url('/assets/fonts/Bitrimus.ttf') format('truetype');
+  font-display: swap;
+}
+
+main { max-width: 720px; margin: 0 auto; padding: 40px 20px 56px; }
+
+h1 {
+  font-size: 30px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin-bottom: 14px;
+}
+
+h2 {
+  font-size: 20px;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  margin: 36px 0 10px;
+  padding-top: 20px;
+  border-top: 1px solid var(--hairline);
+}
+
+h3 { font-size: 15px; margin: 22px 0 6px; }
+
+p { margin-bottom: 14px; color: var(--ink-2); }
+.lede { font-size: 17px; color: var(--ink); }
+.meta { font-size: 13px; color: var(--ink-3); margin-top: 32px; }
+
+a { color: var(--accent); }
+
+.cta {
+  display: inline-block;
+  padding: 8px 14px;
+  border-radius: var(--r-sm);
+  background: var(--accent);
+  color: var(--on-accent) !important;
+  font-weight: 600;
+  font-size: 13px;
+  text-decoration: none !important;
+  white-space: nowrap;
+}
+.cta:hover { opacity: 0.9; }
+.cta.big { padding: 12px 20px; font-size: 15px; margin: 6px 0 10px; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 10px 0 6px;
+  font-size: 14px;
+}
+th, td {
+  text-align: left;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--hairline);
+  vertical-align: top;
+}
+th { color: var(--ink); font-weight: 600; }
+td { color: var(--ink-2); }
+td:first-child { color: var(--ink); font-weight: 500; white-space: nowrap; }
+
+.others {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  margin: 12px 0;
+}
+.others a {
+  display: block;
+  padding: 5px 10px;
+  border-radius: var(--r-xs);
+  background: var(--sub);
+  box-shadow: var(--shadow-cap);
+  color: var(--ink-2);
+  font-size: 13px;
+  text-decoration: none;
+}
+.others a:hover { color: var(--ink); background: var(--well); }
+
+@media (max-width: 600px) {
+  main { padding: 28px 16px 40px; }
+  h1 { font-size: 25px; }
+  .bar { padding: 0 16px; }
+}
