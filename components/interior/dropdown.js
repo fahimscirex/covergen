@@ -76,7 +76,11 @@
       top: 0;
       z-index: 50;
       min-width: 224px;
-      max-width: min(360px, 92vw);
+      /* Sized by its content, not clipped to a guess. A list of short labels
+         stays narrow; one of full university names gets the room to spell them
+         out instead of ellipsing every row. --dropdown-max lets a caller cap
+         it, and the viewport always wins. */
+      max-width: min(var(--dropdown-max, 520px), calc(100vw - 24px));
       white-space: nowrap;
       padding: 5px;
       border-radius: var(--r-lg, 11px);
@@ -254,7 +258,10 @@
     #place = () => {
       const r = this.$trigger.getBoundingClientRect();
       const p = this.$panel;
+      // Never narrower than the trigger it belongs to, and never wider than
+      // the viewport can show.
       p.style.minWidth = `${Math.max(224, r.width)}px`;
+      p.style.maxWidth = `${Math.max(224, innerWidth - 24)}px`;
       const h = p.offsetHeight;
       const room = { below: innerHeight - r.bottom - 8, above: r.top - 8 };
       const up = h > room.below && room.above > room.below;
