@@ -37,6 +37,20 @@ const UNIVERSITIES = [
 ];
 const OTHER = "other"; // has no data file: everything is typed, the crest uploaded
 
+/* Cover formats. "bd" is the decorative cover Bangladeshi universities ask
+   for; the rest follow APA 7, MLA 9 and Chicago (Turabian) as their manuals
+   print them, plain on purpose, and a UK/Australian-style coursework sheet.
+   Each has a template in index.html and a builder in assets/cover-pdf.js. */
+const FORMATS = [
+  { id: "bd", label: "Bangladeshi", desc: "Crest, masthead, Submitted To and By blocks" },
+  { id: "apa", label: "APA 7", desc: "Plain centered title page, double-spaced" },
+  { id: "mla", label: "MLA 9", desc: "No cover: a heading on your first page" },
+  { id: "chicago", label: "Chicago / Turabian", desc: "Title a third down, your details below" },
+  { id: "uk", label: "UK / Australian sheet", desc: "Details table and a signed declaration" },
+];
+
+const DEFAULT_DECLARATION = "I confirm that this assignment is my own work, that every source I used is acknowledged, and that it has not been submitted for assessment anywhere else. I understand that plagiarism and collusion are breaches of academic integrity.";
+
 // Sentinel dropdown value: the department is typed rather than picked.
 const MANUAL = "__manual";
 
@@ -48,6 +62,13 @@ const TITLE_PREFIX = {
 };
 
 const DEFAULT_DATA = {
+  setupDone: false,
+  format: "bd",
+  paper: "a4",
+  mlaTitlePage: false,
+  subtitle: "",
+  wordCount: "",
+  declaration: DEFAULT_DECLARATION,
   univ: "bup",
   logo: "assets/bup_logo.svg",
   univName: "BANGLADESH UNIVERSITY OF PROFESSIONALS",
@@ -88,6 +109,7 @@ let state = { ...DEFAULT_DATA };
 let univ = null;          // the picked university's data/<id>.json, once loaded
 const univFetches = {};
 let currentZoom = 1.0;
+let refitPreview = () => {};
 
 const elements = {
   univNameInput: document.getElementById("univNameInput"),
@@ -98,6 +120,20 @@ const elements = {
   univAddressInput: document.getElementById("univAddressInput"),
   showAddress: document.getElementById("showAddress"),
   univSelect: document.getElementById("univSelect"),
+  formatSelect: document.getElementById("formatSelect"),
+  mlaTitlePage: document.getElementById("mlaTitlePage"),
+  btnCopyHeading: document.getElementById("btnCopyHeading"),
+  subtitle: document.getElementById("subtitle"),
+  wordCount: document.getElementById("wordCount"),
+  declaration: document.getElementById("declaration"),
+  paperSelect: document.getElementById("paperSelect"),
+  coverForm: document.getElementById("coverForm"),
+  setup: document.getElementById("setup"),
+  setupUniv: document.getElementById("setupUniv"),
+  setupFormats: document.getElementById("setupFormats"),
+  setupDone: document.getElementById("setupDone"),
+  pUkCrest: document.getElementById("pUkCrest"),
+  pUkRows: document.getElementById("pUkRows"),
   btnCrest: document.getElementById("btnCrest"),
   crestFile: document.getElementById("crestFile"),
   deptPreset: document.getElementById("deptPreset"),
@@ -155,7 +191,15 @@ const elements = {
 
 function init() {
   loadSavedState();
-  elements.univSelect.items = UNIVERSITIES.map(u => ({ value: u.id, label: u.short, full: `${u.name} (${u.short})` }));
+  const univItems = UNIVERSITIES.map(u => ({ value: u.id, label: u.short, full: `${u.name} (${u.short})` }));
+  elements.univSelect.items = univItems;
+  elements.setupUniv.items = univItems;
+  elements.formatSelect.items = FORMATS.map(f => ({ value: f.id, label: f.label, full: f.label }));
+  elements.setupFormats.innerHTML = FORMATS.map(f => `
+    <button type="button" class="format-option" role="radio" data-format="${f.id}">
+      <b>${f.label}</b><span>${f.desc}</span>
+    </button>`).join("");
+  showSetup(!state.setupDone);
   syncFormFromState();
   renderMembersInputs();
   updatePreview();
@@ -164,11 +208,15 @@ function init() {
   autoScalePreviewOnResize();
 }
 
+const MINOR_WORDS = new Set(["of", "and", "the", "for", "in", "on", "at", "to", "a", "an"]);
+
 function toNaturalTitleCase(str) {
   if (!str || typeof str !== "string") return "";
   const trimmed = str.trim();
   if (trimmed.length > 3 && trimmed === trimmed.toUpperCase() && /[A-Z]/.test(trimmed)) {
-    return trimmed.toLowerCase().replace(/(^|\s|-|\.)([a-z])/g, (m, p1, p2) => p1 + p2.toUpperCase());
+    return trimmed.toLowerCase()
+      .replace(/(^|\s|-|\.)([a-z]+)/g, (m, p1, w) =>
+        p1 + (p1 && MINOR_WORDS.has(w) ? w : w[0].toUpperCase() + w.slice(1)));
   }
   return str;
 }
@@ -182,6 +230,8 @@ function loadSavedState() {
     if (saved) {
       const parsed = JSON.parse(saved);
       state = Object.assign({}, DEFAULT_DATA, parsed);
+      // Saves from before the setup step: these people are past it.
+      if (parsed.setupDone === undefined) state.setupDone = true;
       if (state.teacherName) {
         state.teacherName = toNaturalTitleCase(state.teacherName);
       }
@@ -287,6 +337,14 @@ function syncFormFromState() {
   if (elements.showAddress) elements.showAddress.checked = !!state.showAddress;
 
   elements.univSelect.value = state.univ;
+  elements.setupUniv.value = state.univ;
+  elements.formatSelect.value = state.format;
+  elements.mlaTitlePage.checked = !!state.mlaTitlePage;
+  elements.subtitle.value = state.subtitle || "";
+  elements.wordCount.value = state.wordCount || "";
+  elements.declaration.value = state.declaration || "";
+  elements.paperSelect.value = state.paper;
+  applyFormat();
   elements.assignmentPrefix.value = state.prefix || "Assignment on";
   elements.assignmentTopic.value = state.topic || "";
   elements.courseTitle.value = state.courseTitle || "";
@@ -440,17 +498,60 @@ function updatePreview() {
   }
 
   elements.pUnivName.style.fontSize = `${state.headerPt || 21}pt`;
-  elements.a4Sheet.className = `a4-sheet ${state.font || "font-times"} ${state.headerCase || "header-caps"} ${state.topicSize || "topic-lg"} ${state.border || "border-none"} ${state.spacing || "spacing-balanced"}`;
+  // Border and spacing belong to the Bangladeshi layout; the others are fixed.
+  const bd = state.format === "bd";
+  elements.a4Sheet.className = `a4-sheet ${state.font || "font-times"} ${state.headerCase || "header-caps"} ${state.topicSize || "topic-lg"} ${bd ? state.border || "border-none" : ""} ${state.spacing || "spacing-balanced"}`;
+
+  const template = state.format === "mla" && state.mlaTitlePage ? "mlatp" : state.format;
+  elements.a4Sheet.querySelectorAll(".sheet-inner").forEach(el =>
+    el.classList.toggle("hidden", el.dataset.format !== template));
+  if (!bd) {
+    const v = coverValues();
+    elements.a4Sheet.querySelectorAll("[data-f]").forEach(el => { el.textContent = v[el.dataset.f] || ""; });
+    elements.pUkRows.innerHTML = v.ukRows.map(([k, val]) =>
+      `<tr><th>${escapeHtml(k)}</th><td>${escapeHtml(val)}</td></tr>`).join("");
+    if (state.logo) elements.pUkCrest.src = state.logo;
+    else elements.pUkCrest.removeAttribute("src");
+  }
   elements.pLogo.parentElement.classList.toggle("hidden", !state.logo);
   if (state.logo && elements.pLogo.getAttribute("src") !== state.logo) elements.pLogo.src = state.logo;
   elements.pLogo.style.height = `${state.logoPx || 112}px`;
 }
 
 function attachEventListeners() {
-  elements.univSelect.addEventListener("change", (e) => {
-    state.univ = e.target.value;
-    showUniversity(state.univ, true);
+  const pickUniversity = (id) => {
+    state.univ = id;
+    elements.univSelect.value = id;
+    elements.setupUniv.value = id;
+    showUniversity(id, true);
+  };
+  elements.univSelect.addEventListener("change", (e) => pickUniversity(e.target.value));
+  elements.setupUniv.addEventListener("change", (e) => pickUniversity(e.target.value));
+
+  elements.formatSelect.addEventListener("change", (e) => pickFormat(e.target.value));
+  elements.setupFormats.addEventListener("click", (e) => {
+    const option = e.target.closest("[data-format]");
+    if (option) pickFormat(option.dataset.format);
   });
+  elements.setupDone.addEventListener("click", () => {
+    state.setupDone = true;
+    showSetup(false);
+    saveState();
+  });
+
+  elements.paperSelect.addEventListener("change", (e) => {
+    state.paper = e.detail.value;
+    applyFormat();
+    updatePreview();
+    saveState();
+  });
+  elements.mlaTitlePage.addEventListener("change", (e) => {
+    state.mlaTitlePage = e.target.checked;
+    applyFormat();
+    updatePreview();
+    saveState();
+  });
+  elements.btnCopyHeading.addEventListener("click", copyMlaHeading);
 
   elements.btnCrest.addEventListener("click", () => {
     elements.crestFile.value = "";
@@ -525,6 +626,9 @@ function attachEventListeners() {
   bind(elements.assignmentTopic, "topic");
   bind(elements.courseTitle, "courseTitle");
   bind(elements.courseCode, "courseCode");
+  bind(elements.subtitle, "subtitle");
+  bind(elements.wordCount, "wordCount");
+  bind(elements.declaration, "declaration");
   bind(elements.teacherName, "teacherName");
   bind(elements.teacherDept, "teacherDept");
   bind(elements.teacherAffiliation, "teacherAffiliation");
@@ -628,6 +732,7 @@ function attachEventListeners() {
   elements.btnReset.addEventListener("confirm", () => {
     localStorage.removeItem(STORAGE_KEY);
     state = JSON.parse(JSON.stringify(DEFAULT_DATA));
+    showSetup(true);
     syncFormFromState();
     renderMembersInputs();
     updatePreview();
@@ -648,6 +753,116 @@ function attachEventListeners() {
     updatePreview();
     saveState();
   });
+}
+
+function showSetup(on) {
+  elements.setup.classList.toggle("hidden", !on);
+  elements.coverForm.classList.toggle("hidden", on);
+}
+
+// The conventional typeface comes with the format; it stays changeable.
+function pickFormat(id) {
+  state.format = id;
+  state.font = id === "uk" ? "font-arial" : "font-times";
+  elements.formatSelect.value = id;
+  elements.fontSelect.value = state.font;
+  applyFormat();
+  updatePreview();
+  saveState();
+}
+
+/* Everything that depends on the format but is not the sheet's content:
+   which form fields apply, the paper, and whether a merge makes sense. */
+function applyFormat() {
+  const template = state.format === "mla" && state.mlaTitlePage ? "mlatp" : state.format;
+  document.querySelectorAll("[data-for]").forEach(el =>
+    el.classList.toggle("hidden", !el.dataset.for.split(" ").includes(state.format)));
+  elements.setupFormats.querySelectorAll("[data-format]").forEach(el =>
+    el.setAttribute("aria-checked", String(el.dataset.format === state.format)));
+
+  const letter = state.paper === "letter";
+  document.documentElement.classList.toggle("paper-letter", letter);
+  document.getElementById("paperBadge").textContent = letter ? "Live Letter" : "Live A4";
+  let pageRule = document.getElementById("pageRule");
+  if (!pageRule) {
+    pageRule = document.head.appendChild(document.createElement("style"));
+    pageRule.id = "pageRule";
+  }
+  pageRule.textContent = `@page { size: ${letter ? "letter" : "A4"} portrait; margin: 0; }`;
+  refitPreview();
+
+  // MLA's heading goes on the student's own first page; there is no cover to
+  // put in front of it.
+  elements.btnMerge.classList.toggle("hidden", template === "mla");
+}
+
+function formatDate(locale) {
+  const [y, m, d] = (state.submissionDate || "").split("-").map(Number);
+  if (!y || !m || !d) return state.submissionDate || "";
+  return new Date(y, m - 1, d).toLocaleDateString(locale, { year: "numeric", month: "long", day: "numeric" });
+}
+
+// "A, B, and C", the way APA lists co-authors on one line.
+function listJoin(names) {
+  if (names.length < 3) return names.join(" and ");
+  return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
+}
+
+/* The text every international template and its PDF builder print, worked
+   out once so the screen and the merged file cannot disagree. */
+function coverValues() {
+  const members = activeMembers();
+  const names = members.map(m => (m.name || "").trim()).filter(Boolean);
+  const ids = members.map(m => (m.id || "").trim()).filter(Boolean);
+  const title = (state.topic || "").trim() || "Untitled";
+  const sub = (state.subtitle || "").trim();
+  const code = (state.courseCode || "").trim();
+  const course = (state.courseTitle || "").trim();
+  const univTitle = univ && state.univName === univ.name.toUpperCase()
+    ? univ.name : toNaturalTitleCase(state.univName || "");
+  const faculty = univ?.faculties.find(f => f.departments.includes(state.studentDept));
+  const dateDMY = formatDate("en-GB");
+  const fullTitle = sub ? `${title}: ${sub}` : title;
+  return {
+    fullTitle,
+    topicColon: sub ? `${title}:` : title,
+    subtitle: sub,
+    authorsInline: listJoin(names),
+    authorsLines: names.join("\n"),
+    affiliation: [state.studentDept, univTitle].filter(Boolean).join(", "),
+    courseLine: code && course ? `${code}: ${course}` : code || course,
+    teacherName: (state.teacherName || "").trim(),
+    dateLong: formatDate("en-US"),
+    dateDMY,
+    mlaRunHead: `${(names[0] || "").split(/\s+/).pop()} 1`.trim(),
+    univTitle,
+    faculty: faculty && faculty.name !== state.studentDept ? faculty.name : "",
+    declaration: (state.declaration || "").trim(),
+    ukRows: [
+      [names.length > 1 ? "Student names" : "Student name", names.join("\n")],
+      [ids.length > 1 ? "Student IDs" : "Student ID", ids.join("\n")],
+      ["Module code and title", [code, course].filter(Boolean).join(" ")],
+      ["Assignment title", fullTitle],
+      ["Module leader", (state.teacherName || "").trim()],
+      ["Submission date", dateDMY],
+      ["Word count", (state.wordCount || "").trim()],
+    ],
+  };
+}
+
+async function copyMlaHeading() {
+  const v = coverValues();
+  const text = [v.authorsLines, v.teacherName, v.courseLine, v.dateDMY, v.fullTitle]
+    .filter(Boolean).join("\n");
+  const btn = elements.btnCopyHeading;
+  const label = btn.textContent;
+  try {
+    await navigator.clipboard.writeText(text);
+    btn.textContent = "Copied. Paste it at the top of your document";
+  } catch {
+    btn.textContent = "Could not copy. Select the heading on the sheet instead";
+  }
+  setTimeout(() => { btn.textContent = label; }, 2200);
 }
 
 // An uploaded crest lives in localStorage as a data URL, so it is redrawn at
@@ -686,7 +901,7 @@ function autoScalePreviewOnResize() {
     const cs = getComputedStyle(previewScroll);
     const containerWidth =
       previewScroll.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-    const sheetNaturalWidth = 210 * 3.7795275591;
+    const sheetNaturalWidth = (state.paper === "letter" ? 215.9 : 210) * 3.7795275591;
     if (containerWidth < sheetNaturalWidth) {
       const fitZoom = Math.max(0.25, containerWidth / sheetNaturalWidth);
       // floor, never round up: rounding up makes the sheet wider than the container
@@ -697,6 +912,7 @@ function autoScalePreviewOnResize() {
   };
 
   window.addEventListener("resize", updateScale);
+  refitPreview = updateScale;
   updateScale();
 }
 
@@ -782,7 +998,7 @@ function setupMerge() {
 
 async function mergeWithAssignment(file) {
   const bytes = await file.arrayBuffer();
-  const { bytes: merged } = await window.BUPCoverPDF.merge(state, bytes);
+  const { bytes: merged } = await window.BUPCoverPDF.merge(state, bytes, coverValues());
 
   const base = (state.topic || "assignment").trim().replace(/[^\w\s-]/g, "").slice(0, 60)
     || "assignment";

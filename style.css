@@ -20,6 +20,12 @@
   --bar-bg: color-mix(in srgb, var(--ink) 6%, var(--bezel));
 }
 
+/* The paper size. app.js toggles .paper-letter on <html> so the print rules
+   below follow the sheet; @page itself cannot read a variable, so app.js also
+   writes that one rule. */
+:root { --paper-w: 210mm; --paper-h: 297mm; }
+:root.paper-letter { --paper-w: 215.9mm; --paper-h: 279.4mm; }
+
 /* Bitrimus, public domain (assets/fonts/Bitrimus-LICENSE.txt). Shipped with
    the app so the wordmark does not depend on a font CDN. */
 @font-face {
@@ -396,12 +402,12 @@ interior-accordion {
 [hidden] { display: none; }
 
 /* ==========================================================================
-   Exact A4 Paper Model (210mm x 297mm) - Original Sample Format
+   The paper: A4 or US Letter, at true size. Its size lives in --paper-w/h
    ========================================================================== */
 .a4-sheet {
-  width: 210mm;
-  min-height: 297mm;
-  height: 297mm;
+  width: var(--paper-w);
+  min-height: var(--paper-h);
+  height: var(--paper-h);
   background: #ffffff;
   box-shadow: var(--shadow-sheet);
   margin: 0 auto;
@@ -654,6 +660,114 @@ interior-accordion {
 }
 
 /* ==========================================================================
+   International formats. APA, MLA and Chicago are typed manuscripts: the
+   paper's own 12pt font, double-spaced, 1in margins, no ornament. The UK/AU
+   sheet is a form. Each mirrors a builder in assets/cover-pdf.js.
+   ========================================================================== */
+.sheet-inner.intl {
+  display: block;
+  padding: 1in;
+  font-size: 12pt;
+  line-height: 2;
+  text-align: center;
+  color: #000;
+}
+.intl p { margin: 0; min-height: 1lh; }
+.intl .pre { white-space: pre-line; }
+.run-head { position: absolute; top: 0.5in; right: 1in; line-height: 1; }
+
+.apa-title { font-weight: 700; margin-top: 3lh !important; }
+.apa-gap { min-height: 1lh; }
+
+.intl-mla { text-align: left; }
+.intl-mla .mla-title { text-align: center; }
+.mla-note {
+  margin-top: 1lh !important;
+  padding: 0.5lh 0.75em;
+  border: 1px dashed #94a3b8;
+  border-radius: 6px;
+  color: #64748b;
+  font-family: var(--font-ui);
+  font-size: 10pt;
+  line-height: 1.5;
+}
+
+/* Title pages: the title a third of the way down, the details lower. */
+.tp-top { position: absolute; top: 1in; left: 1in; right: 1in; }
+.tp-title { position: absolute; top: 33%; left: 1in; right: 1in; font-weight: 700; }
+.cm-title span { display: block; }
+.cm-title .cm-sub:empty { display: none; }
+.tp-lower { position: absolute; top: 62%; left: 1in; right: 1in; }
+
+.sheet-inner.intl-uk {
+  padding: 20mm;
+  font-size: 10.5pt;
+  line-height: 1.35;
+  text-align: left;
+}
+.intl-uk p { min-height: 0; }
+.uk-head { display: flex; align-items: center; gap: 4mm; padding-bottom: 4mm; border-bottom: 2px solid #000; }
+.uk-crest { height: 17mm; width: auto; }
+.uk-crest:not([src]), .uk-crest[src=""] { display: none; }
+.uk-univ { font-weight: 700; font-size: 12pt; line-height: 1.2; }
+.uk-faculty { font-size: 9pt; color: #333; margin-top: 1mm !important; }
+.uk-heading { font-size: 16pt; font-weight: 700; margin: 7mm 0 5mm; }
+.uk-table { width: 100%; border-collapse: collapse; }
+.uk-table th, .uk-table td { border: 1px solid #000; padding: 2.2mm 2.6mm; text-align: left; vertical-align: top; white-space: pre-line; }
+.uk-table th { width: 36%; background: #ececec; font-weight: 700; }
+.uk-decl { margin-top: 8mm; border: 1px solid #000; padding: 3.5mm 4mm 5mm; }
+.uk-decl-title { font-weight: 700; margin-bottom: 2mm !important; }
+.uk-sign { display: grid; grid-template-columns: 1.6fr 1fr; gap: 6mm; margin-top: 12mm; }
+.uk-sign span { border-top: 1px solid #000; padding-top: 1.2mm; font-size: 9pt; }
+
+/* Setup step ------------------------------------------------------------- */
+.setup {
+  margin: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--hairline);
+  background: var(--panel);
+  box-shadow: var(--shadow-lift);
+}
+.setup h2 { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.3; }
+.setup > p { color: var(--ink-2); line-height: 1.5; }
+.format-picker { display: grid; gap: 6px; }
+.format-option {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid var(--hairline);
+  border-radius: var(--r-md);
+  background: var(--well);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.format-option:hover { background: var(--sub); }
+.format-option:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.format-option[aria-checked="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.format-option b { font-weight: 600; }
+.format-option span { color: var(--ink-3); font-size: var(--text-sm); line-height: 1.4; }
+.btn-start {
+  height: var(--field-h);
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--accent);
+  color: var(--on-accent);
+  font: 600 var(--text)/1 var(--font-ui);
+  letter-spacing: var(--track);
+  cursor: pointer;
+}
+.btn-start:hover { filter: brightness(1.06); }
+.btn-start:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ==========================================================================
    Print Stylesheet (@media print)
    ========================================================================== */
 @media print {
@@ -666,14 +780,15 @@ interior-accordion {
     margin: 0 !important;
     padding: 0 !important;
     background: #ffffff !important;
-    width: 210mm !important;
-    height: 297mm !important;
+    width: var(--paper-w) !important;
+    height: var(--paper-h) !important;
     overflow: hidden !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
   .sidebar,
+  .screen-only,
   .preview-toolbar {
     display: none !important;
   }
@@ -700,10 +815,10 @@ interior-accordion {
   .a4-sheet {
     box-shadow: none !important;
     margin: 0 !important;
-    width: 210mm !important;
-    height: 297mm !important;
-    min-height: 297mm !important;
-    max-height: 297mm !important;
+    width: var(--paper-w) !important;
+    height: var(--paper-h) !important;
+    min-height: var(--paper-h) !important;
+    max-height: var(--paper-h) !important;
     page-break-after: avoid !important;
     page-break-inside: avoid !important;
     transform: none !important;
@@ -712,7 +827,7 @@ interior-accordion {
 
 
   .sheet-inner {
-    height: 297mm !important;
+    height: var(--paper-h) !important;
     box-sizing: border-box !important;
     page-break-after: avoid !important;
     page-break-inside: avoid !important;

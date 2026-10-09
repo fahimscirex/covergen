@@ -10,7 +10,11 @@ only so the printed sheet matches what departments expect.
 
 ## What it does
 
-- True 210x297mm preview that prints to vector PDF with selectable text
+- Five formats: the Bangladeshi cover, APA 7, MLA 9 (heading, or a title page
+  when asked), Chicago/Turabian and a UK/Australian coursework sheet
+- A first visit asks only for the university and format; the preview switches
+  as you pick, so you can compare
+- True-size A4 or US Letter preview that prints to vector PDF with selectable text
 - Pick your university and department; type either in if it is not listed, and upload your own crest
 - Search the university's teachers to fill in the Submitted To block
 - Individual or group submissions
@@ -94,8 +98,10 @@ things follow from that:
 - PDF has only Times and Helvetica built in. Times New Roman and Arial come out
   exactly; EB Garamond, Libre Baskerville and Georgia fall back to Times in the
   merged file. Use Print instead of Merge if the family matters.
-- The cover layout now exists twice. The on-screen sheet is the source of truth
-  and `cover-pdf.js` mirrors it, so a format change has to be made in both.
+- Every cover layout exists twice, as a template in `index.html` and a
+  builder in `cover-pdf.js`. The on-screen sheet is the source of truth and the PDF mirrors it, so a
+  format change has to be made in both. The international formats share
+  their text through `coverValues()` in `app.js`.
 
 `assets/pdf-lib.min.js` is vendored and loaded only when someone merges, so the
 first paint downloads none of it.
