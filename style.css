@@ -1092,9 +1092,10 @@ interior-accordion {
   .preview-scroll { padding: 1.25rem 1rem 2rem; }
 }
 
-/* Four controls in the toolbar: the badge and save note yield before they
-   start wrapping. */
-@media (max-width: 900px) {
+/* The toolbar's four controls need roughly 490px, and the preview pane is the
+   viewport less the 460px sidebar. Below about 1100px the badge and save note
+   have to yield or they get clipped. */
+@media (max-width: 1100px) {
   .preview-info { display: none; }
 }
 

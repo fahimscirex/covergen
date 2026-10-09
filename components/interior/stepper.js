@@ -52,6 +52,9 @@
       display: inline-flex;
       align-items: center;
       gap: 2px;
+      /* --control-h tall, like a button or a dropdown trigger, so a stepper
+         standing in a toolbar lines up with whatever sits beside it. */
+      height: var(--control-h, 36px);
       padding: 3px;
       border-radius: var(--r-sm, 9px);
       background: var(--sub, #fafafa);
@@ -60,7 +63,8 @@
     button {
       display: grid;
       place-items: center;
-      width: 26px; height: 26px;
+      width: calc(var(--control-h, 36px) - 6px);
+      height: calc(var(--control-h, 36px) - 6px);
       border: 0;
       border-radius: var(--r-xs, 7px);
       background: var(--well, #fff);

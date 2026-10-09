@@ -991,7 +991,9 @@ function startBylineDecode() {
 
   function run() {
     const start = performance.now();
-    const STEP = 55;          // ms a character holds one random glyph
+    // Snappier than it would need to be on its own: at a 2s cadence a slower
+    // burst would leave the mark scrambled nearly half the time.
+    const STEP = 40;          // ms a character holds one random glyph
     const PER_CHAR = 2;       // steps before the next character locks
     const total = (FINAL.length * PER_CHAR + 3) * STEP;
 
@@ -1011,7 +1013,7 @@ function startBylineDecode() {
   function schedule() {
     clearInterval(timer);
     if (reduced.matches) { el.textContent = FINAL; return; }
-    timer = setInterval(() => { if (!document.hidden) run(); }, 7000);
+    timer = setInterval(() => { if (!document.hidden) run(); }, 2000);
   }
 
   reduced.addEventListener("change", schedule);
