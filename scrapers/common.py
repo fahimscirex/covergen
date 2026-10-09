@@ -34,7 +34,8 @@ def get(url, tries=4):
             with urllib.request.urlopen(req, timeout=60) as r:
                 return r.read().decode(r.headers.get_content_charset() or "utf-8", "replace")
         except Exception as e:
-            if i == tries - 1:
+            # A 404 will still be a 404 in 30 seconds; only retry what can recover.
+            if i == tries - 1 or getattr(e, "code", 500) < 500:
                 raise
             print(f"retry {url}: {e}", file=sys.stderr)
             time.sleep(2 ** (i + 1))
