@@ -22,6 +22,7 @@ only so the printed sheet matches what departments expect.
 - Copy a link to your cover for classmates: everything travels in the link
   itself (after the `#`, never sent to the server), about 300 characters for
   a group of four. A directory teacher goes as a short hash of their name.
+- Or show the same link as a QR code for a classmate to scan
 - Remembers everything in `localStorage`, so next week you only change the topic
 - Adjustable document font, title and headline size, crest size, spacing, border
 - Light and dark. The sheet itself stays black on white, because it is print
@@ -111,5 +112,6 @@ first paint downloads none of it.
 
 ## Credits
 
-Bitrimus (public domain) and pdf-lib are vendored under `assets/`. Built by
+Bitrimus (public domain), pdf-lib and qrcode-generator (MIT) are vendored under
+`assets/`; the last two load only when Merge or the QR code is used. Built by
 [SC1R3X](https://scirex.me).

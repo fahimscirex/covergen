@@ -255,6 +255,7 @@ function loadSavedState() {
 let saveStatusTimer = null;
 
 function saveState() {
+  if (!document.getElementById("shareQr").classList.contains("hidden")) renderShareQr();
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     showSaved();
@@ -561,6 +562,7 @@ function attachEventListeners() {
   });
   elements.btnCopyHeading.addEventListener("click", copyMlaHeading);
   document.getElementById("btnShare").addEventListener("click", copyShareLink);
+  document.getElementById("btnQr").addEventListener("click", toggleShareQr);
   document.getElementById("shareUndo").addEventListener("click", undoShare);
 
   elements.btnCrest.addEventListener("click", () => {
@@ -1041,6 +1043,50 @@ async function copyShareLink() {
     note.textContent = `Link copied. It carries every name and ID on this cover, so share it only with your classmates.${crest}`;
   } catch {
     note.textContent = `Copy this link: ${url}${crest}`;
+  }
+}
+
+// Loaded on first use, like the PDF engine: most visits never need it.
+let qrLib = null;
+function loadQr() {
+  qrLib ||= new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "assets/qrcode.min.js";
+    s.onload = () => resolve(window.qrcode);
+    s.onerror = () => { qrLib = null; reject(new Error("Could not load the QR code engine")); };
+    document.head.appendChild(s);
+  });
+  return qrLib;
+}
+
+async function toggleShareQr() {
+  const btn = document.getElementById("btnQr");
+  const box = document.getElementById("shareQr");
+  const open = box.classList.contains("hidden");
+  btn.setAttribute("aria-expanded", String(open));
+  btn.textContent = open ? "Hide QR code" : "Show QR code";
+  box.classList.toggle("hidden", !open);
+  if (open) renderShareQr();
+}
+
+// Redrawn on every save while it is showing, so it never encodes a stale cover.
+async function renderShareQr() {
+  try {
+    const [qrcode, { url }] = await Promise.all([loadQr(), buildShareLink()]);
+    // Medium error correction: still reads through screen glare.
+    const qr = qrcode(0, "M");
+    qr.addData(url);
+    qr.make();
+    const box = document.getElementById("qrCode");
+    // margin is in the same units as cellSize: 16 is the four-module quiet
+    // zone scanners need around the code.
+    box.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 16, scalable: true, alt: "QR code for this cover" });
+    // Whole pixels per module: fractional ones render uneven and scan worse.
+    const modules = qr.getModuleCount() + 8;
+    box.firstElementChild.style.width = `${Math.max(2, Math.floor(260 / modules)) * modules}px`;
+  } catch (e) {
+    console.warn(e);
+    document.getElementById("qrCode").textContent = "The QR code could not be made. Use Copy a link instead.";
   }
 }
 

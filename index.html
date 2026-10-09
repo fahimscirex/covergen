@@ -197,8 +197,15 @@
         </interior-accordion>
 
         <div class="field-group">
-          <button type="button" class="btn-quiet" id="btnShare">Copy a link to this cover</button>
+          <div class="row">
+            <button type="button" class="btn-quiet" id="btnShare">Copy a link to this cover</button>
+            <button type="button" class="btn-quiet" id="btnQr" aria-expanded="false" aria-controls="shareQr">Show QR code</button>
+          </div>
           <p class="field-note" id="shareNote">Classmates who open it get this cover, ready to change the names and IDs.</p>
+          <figure class="share-qr hidden" id="shareQr">
+            <div class="qr-code" id="qrCode"></div>
+            <figcaption>Scan with a phone camera to open this cover. It carries every name and ID on it.</figcaption>
+          </figure>
         </div>
 
         <div class="form-actions-bottom">
