@@ -41,12 +41,15 @@ plus its masthead text and crest path. Teachers are stored as
 `[name, titleIndex, departmentIndex]` rows to keep the files small. The app
 fetches a file only when its university is picked.
 
-Covered: BUP, AIUB, AUST, BAU, BUET, BUTEX, CU, CUET, DIU, DU, EWU, IUB, IUT,
-JnU, JU, KU, KUET, NSU, RUET, UIU and ULAB, about 11,400 teachers.
+Covered: BUP, AIUB, AUST, BAU, BRACU, BUET, BUTEX, CU, CUET, DIU, DU, EWU, IUB, IUT,
+JnU, JU, KU, KUET, NSU, RU, RUET, SUST, UIU and ULAB, about 12,600 teachers.
+BRACU and SUST list departments only: their sites sit behind a Cloudflare bot
+check, so their departments come from Wikipedia. Any other university can be
+picked as "Not listed" and typed in, with an uploaded crest.
 
-Not yet: BRAC University and SUST sit behind a Cloudflare bot check, MIST's
-site could not be reached, and Rajshahi University's teacher list is only
-served through a keyed API.
+Not yet: MIST, whose site could not be reached from the scraping machine.
+RU and BAU serve their teachers through an API keyed with a value from their
+own public JavaScript; the scrapers read it from there at run time.
 
 Each file is written by `scrapers/<id>.py` from the university's own website:
 

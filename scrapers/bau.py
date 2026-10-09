@@ -3,17 +3,16 @@
 # ///
 """Bangladesh Agricultural University. Faculty/department sites are Nuxt apps that
 fetch teachers from app.bau.edu.bd/api with the public X-API-KEY the site's own
-JavaScript ships to every browser. The key is not kept in this repo: copy the
-X-API-KEY header from any request to app.bau.edu.bd in the browser's network tab.
-Run: BAU_API_KEY=... uv run scrapers/bau.py"""
+JavaScript ships to every browser. The key is not kept in this repo: the scraper reads it
+from the live /_nuxt/*.js bundles of a faculty site at run time.
+Run: uv run scrapers/bau.py"""
 import json
-import os
 import re
 import time
 import urllib.request
 from urllib.parse import urlparse
 
-from common import UA, clean, soup, write
+from common import UA, clean, get, soup, write
 
 
 def who(s):
@@ -23,10 +22,20 @@ def who(s):
 
 
 API = "https://app.bau.edu.bd/api/department/{}/teachers/inservice"
-KEY = os.environ["BAU_API_KEY"]
 TEACHING = ("professor", "lecturer")
 FACULTIES = {  # subdomain -> acronym; the faculty pages list their departments
     "ag": "FA", "fvs": "FVS", "ah": "FAH", "aers": "FAERS", "aet": "FAET", "fs": "FF"}
+
+
+def api_key(site="https://ag.bau.edu.bd"):
+    for path in dict.fromkeys(re.findall(r'/_nuxt/[^"\'\s]+\.js', get(site + "/"))):
+        m = re.search(r'"X-API-KEY"\s*:\s*"([^"]+)"', get(site + path))
+        if m:
+            return m[1]
+    raise SystemExit(f"X-API-KEY not found in the /_nuxt bundles of {site}")
+
+
+KEY = api_key()
 
 
 def teachers_of(sub):
