@@ -76,14 +76,15 @@ def person(s):
     return s
 
 
-def write(uid, *, name, tagline, address, logo, source, faculties, teachers):
-    """teachers: iterable of (name, designation, department)."""
+def write(uid, *, name, tagline, address, logo, source, faculties, teachers=None):
+    """teachers: iterable of (name, designation, department), or None when the
+    university publishes no list we can read (departments only)."""
     depts = [d for f in faculties for d in f["departments"]]
     assert len(depts) == len(set(depts)), "department listed twice"
     index = {d: i for i, d in enumerate(depts)}
 
     titles, rows, seen = [], [], set()
-    for n, t, d in teachers:
+    for n, t, d in teachers or ():
         n, t, d = person(n), title(t), clean(d)
         if not n or (n, d) in seen:
             continue
@@ -93,7 +94,8 @@ def write(uid, *, name, tagline, address, logo, source, faculties, teachers):
             titles.append(t)
         rows.append([n, titles.index(t), index[d]])
 
-    assert rows, "scraped no teachers"
+    assert rows or teachers is None, "scraped no teachers"
+    assert depts, "scraped no departments"
     out = {
         "name": name, "tagline": tagline, "address": address, "logo": logo,
         "source": source, "updated": date.today().isoformat(),

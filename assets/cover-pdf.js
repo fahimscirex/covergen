@@ -171,10 +171,10 @@ window.BUPCoverPDF = (() => {
     }
 
     const logoH = (state.logoPx || 112) * PX;
-    const logoW = logoH * fontFor.crest.ratio;
+    const logoW = logoH * (fontFor.crest?.ratio || 1);
     // Its own block, matching the preview: space-evenly then centres the crest
     // between the masthead and the assignment.
-    const crestBlock = {
+    const crestBlock = fontFor.crest && {
       height: logoH,
       draw(pg, c, y) {
         pg.drawImage(fontFor.crest.png, {
@@ -253,7 +253,8 @@ window.BUPCoverPDF = (() => {
       byParts.push(textBlock([`Date of Submission: ${pretty}`], f.italic, 11, 1.4));
     }
 
-    const blocks = [stack(mastParts), crestBlock, assignment, to, stack(byParts)];
+    // No crest (an unlisted university with none uploaded) drops the block.
+    const blocks = [stack(mastParts), crestBlock, assignment, to, stack(byParts)].filter(Boolean);
 
     // flex `justify-content: space-evenly` plus the sheet's row gap.
     const gap = (SIZES.gap[state.spacing] ?? 4) * MM;
@@ -301,7 +302,7 @@ window.BUPCoverPDF = (() => {
       faces: faces(fonts, StandardFonts, state.font),
       black: rgb(0, 0, 0),
       rule: rgb(0.12, 0.16, 0.22),
-      crest: await crest(pdf, state.logo),
+      crest: state.logo ? await crest(pdf, state.logo) : null,
     };
 
     await buildCover(pdf, state, StandardFonts, fontFor);

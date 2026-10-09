@@ -38,7 +38,11 @@
           <!-- 1. University & Department -->
           <interior-panel step="1" heading="University &amp; department" open>
             <div class="stack">
-              <interior-dropdown id="univSelect" block label="University" value="bup"></interior-dropdown>
+              <div class="field-group">
+                <interior-dropdown id="univSelect" block label="University" value="bup"></interior-dropdown>
+                <input type="file" id="crestFile" accept="image/*" hidden>
+                <button type="button" id="btnCrest" class="btn-quiet">Upload your own crest</button>
+              </div>
               <interior-field id="univNameInput" label="University headline"
                 value="BANGLADESH UNIVERSITY OF PROFESSIONALS"></interior-field>
 

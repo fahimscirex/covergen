@@ -30,7 +30,9 @@ const UNIVERSITIES = [
   { id: "ruet", short: "RUET", name: "Rajshahi University of Engineering & Technology" },
   { id: "uiu", short: "UIU", name: "United International University" },
   { id: "ulab", short: "ULAB", name: "University of Liberal Arts Bangladesh" },
+  { id: "other", short: "Other", name: "Not listed, type it in" },
 ];
+const OTHER = "other"; // has no data file: everything is typed, the crest uploaded
 
 // Sentinel dropdown value: the department is typed rather than picked.
 const MANUAL = "__manual";
@@ -93,6 +95,8 @@ const elements = {
   univAddressInput: document.getElementById("univAddressInput"),
   showAddress: document.getElementById("showAddress"),
   univSelect: document.getElementById("univSelect"),
+  btnCrest: document.getElementById("btnCrest"),
+  crestFile: document.getElementById("crestFile"),
   deptPreset: document.getElementById("deptPreset"),
   assignmentPrefix: document.getElementById("assignmentPrefix"),
   assignmentTopic: document.getElementById("assignmentTopic"),
@@ -178,7 +182,7 @@ function loadSavedState() {
       if (state.teacherName) {
         state.teacherName = toNaturalTitleCase(state.teacherName);
       }
-      state.univName = (state.univName || "BANGLADESH UNIVERSITY OF PROFESSIONALS").toUpperCase();
+      state.univName = (state.univName || "").toUpperCase();
       // The crest used to be three presets; carry those saves over to the
       // variable size so nobody's stored layout jumps.
       if (typeof state.logoPx !== "number") {
@@ -226,19 +230,22 @@ function loadUniversity(id) {
    affiliation. On page load the saved (possibly hand-edited) values win. */
 async function showUniversity(id, fill) {
   let data = null;
-  try { data = await loadUniversity(id); }
-  catch (e) { console.warn(`Could not load data/${id}.json:`, e); }
+  if (id !== OTHER) {
+    try { data = await loadUniversity(id); }
+    catch (e) { console.warn(`Could not load data/${id}.json:`, e); }
+  }
   if (state.univ !== id) return; // another university was picked meanwhile
   univ = data;
 
-  if (fill && univ) {
-    state.univName = univ.name.toUpperCase();
-    state.univTagline = univ.tagline;
-    state.showTagline = !!univ.tagline;
-    state.univAddress = univ.address;
-    state.logo = univ.logo;
-    state.teacherAffiliation = univ.name;
-    state.studentDept = univ.faculties[0]?.departments[0] || "";
+  // A listed university that failed to load keeps what is on screen.
+  if (fill && (univ || id === OTHER)) {
+    state.univName = univ ? univ.name.toUpperCase() : "";
+    state.univTagline = univ?.tagline || "";
+    state.showTagline = !!state.univTagline;
+    state.univAddress = univ?.address || "";
+    state.logo = univ?.logo || "";
+    state.teacherAffiliation = univ?.name || "";
+    state.studentDept = univ?.faculties[0]?.departments[0] || "";
     // The last teacher belonged to the last university.
     state.teacherName = "";
     state.teacherDept = state.studentDept;
@@ -266,7 +273,7 @@ function populateDepartmentDropdown() {
 }
 
 function syncFormFromState() {
-  if (elements.univNameInput) elements.univNameInput.value = state.univName || "BANGLADESH UNIVERSITY OF PROFESSIONALS";
+  if (elements.univNameInput) elements.univNameInput.value = state.univName;
   if (elements.headerCaseSelect) elements.headerCaseSelect.value = state.headerCase || "header-caps";
   if (elements.headerSizeSelect) {
     elements.headerSizeSelect.setAttribute("value", String(state.headerPt || 21));
@@ -283,7 +290,7 @@ function syncFormFromState() {
   elements.courseCode.value = state.courseCode || "";
   elements.teacherName.value = state.teacherName || "";
   elements.teacherDept.value = state.teacherDept || "";
-  elements.teacherAffiliation.value = state.teacherAffiliation || "Bangladesh University of Professionals";
+  elements.teacherAffiliation.value = state.teacherAffiliation;
 
   elements.studentSection.value = state.section || "";
   elements.studentSession.value = state.session || "";
@@ -354,7 +361,7 @@ function renderMembersInputs() {
 }
 
 function updatePreview() {
-  const rawUniv = state.univName || "BANGLADESH UNIVERSITY OF PROFESSIONALS";
+  const rawUniv = state.univName || "";
   if (state.headerCase === "header-caps") {
     elements.pUnivName.textContent = rawUniv.toUpperCase();
   } else {
@@ -383,7 +390,7 @@ function updatePreview() {
 
   elements.pTeacherName.textContent = state.teacherName || "";
   elements.pTeacherDept.textContent = state.teacherDept || "";
-  elements.pTeacherAffil.textContent = state.teacherAffiliation || "Bangladesh University of Professionals";
+  elements.pTeacherAffil.textContent = state.teacherAffiliation;
 
   const tbody = elements.pStudentsTable.querySelector("tbody");
   tbody.innerHTML = "";
@@ -431,7 +438,8 @@ function updatePreview() {
 
   elements.pUnivName.style.fontSize = `${state.headerPt || 21}pt`;
   elements.a4Sheet.className = `a4-sheet ${state.font || "font-times"} ${state.headerCase || "header-caps"} ${state.topicSize || "topic-lg"} ${state.border || "border-none"} ${state.spacing || "spacing-balanced"}`;
-  if (elements.pLogo.getAttribute("src") !== state.logo) elements.pLogo.src = state.logo;
+  elements.pLogo.parentElement.classList.toggle("hidden", !state.logo);
+  if (state.logo && elements.pLogo.getAttribute("src") !== state.logo) elements.pLogo.src = state.logo;
   elements.pLogo.style.height = `${state.logoPx || 112}px`;
 }
 
@@ -439,6 +447,19 @@ function attachEventListeners() {
   elements.univSelect.addEventListener("change", (e) => {
     state.univ = e.target.value;
     showUniversity(state.univ, true);
+  });
+
+  elements.btnCrest.addEventListener("click", () => {
+    elements.crestFile.value = "";
+    elements.crestFile.click();
+  });
+  elements.crestFile.addEventListener("change", async () => {
+    const file = elements.crestFile.files[0];
+    if (!file) return;
+    try { state.logo = await shrinkImage(file); }
+    catch (e) { console.warn("Could not read that image:", e); return; }
+    updatePreview();
+    saveState();
   });
 
   elements.deptPreset.addEventListener("change", (e) => {
@@ -626,6 +647,27 @@ function attachEventListeners() {
   });
 }
 
+// An uploaded crest lives in localStorage as a data URL, so it is redrawn at
+// 300px tall first: sharp at the largest crest size, and a few dozen KB
+// rather than whatever the original weighed.
+async function shrinkImage(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    const nw = img.naturalWidth || 300, nh = img.naturalHeight || 300;
+    const h = Math.min(300, nh), w = Math.round(h * nw / nh);
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+    return canvas.toDataURL("image/png");
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 function applyZoom(zoom) {
   currentZoom = zoom;
   elements.zoomStepper.setAttribute("value", String(Math.round(zoom * 100)));
@@ -683,9 +725,9 @@ function populateTeacherSearch() {
     return { value: label, label, sub: [title, depts[d]].filter(Boolean).join(" / "), data: { name: label, dept: depts[d] } };
   });
   const short = UNIVERSITIES.find(u => u.id === state.univ)?.short || "";
-  box.$input.placeholder = univ
+  box.$input.placeholder = univ?.teachers.length
     ? `Search ${univ.teachers.length} ${short} teachers by name or department`
-    : "Directory unavailable, type the teacher below";
+    : "No teacher list for this university, type it below";
 }
 
 /* Cover page + the student's own assignment PDF, as one file.

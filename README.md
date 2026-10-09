@@ -11,7 +11,7 @@ only so the printed sheet matches what departments expect.
 ## What it does
 
 - True 210x297mm preview that prints to vector PDF with selectable text
-- Pick your university and department; type the department instead if it is not listed
+- Pick your university and department; type either in if it is not listed, and upload your own crest
 - Search the university's teachers to fill in the Submitted To block
 - Individual or group submissions
 - Merge the cover with your own assignment PDF into a single file
