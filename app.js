@@ -221,6 +221,7 @@ async function init() {
   showUniversity(state.univ, false);
   attachEventListeners();
   autoScalePreviewOnResize();
+  startBylineDecode();
   if (shared) showShareNotice(shared);
 }
 
@@ -956,6 +957,68 @@ function escapeHtml(str) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+/* The byline decodes itself every few seconds: each character flickers through
+ * a handful of leet and terminal glyphs, then settles left to right.
+ *
+ * Three things keep it from being annoying. Substitutions are one character
+ * for one, and the byline is set in a monospace face, so the header never
+ * reflows while it runs. The <span> is aria-hidden and the link carries its
+ * own aria-label, so a screen reader never hears the scrambled state. And it
+ * stops dead for prefers-reduced-motion and whenever the tab is hidden, which
+ * is both the polite and the battery-friendly thing to do.
+ */
+function startBylineDecode() {
+  const el = document.getElementById("byline");
+  if (!el) return;
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+  const FINAL = el.textContent;
+
+  // Per-character stand-ins, so a scrambling "S" still reads as an S-ish shape
+  // rather than turning the mark into noise.
+  const LEET = {
+    S: "5$8z2", C: "<({[©", I: "1!|:7", R: "2®Pя4", E: "3€£=F", X: "%#*+×",
+    1: "I!|7/", 3: "E£€=F",
+  };
+  const POOL = "01<>/\\|[]{}*#%$&@+=~^?";
+  const glyph = (ch) => {
+    const set = LEET[ch.toUpperCase()] || POOL;
+    return set[(Math.random() * set.length) | 0];
+  };
+
+  let timer = null, raf = 0;
+
+  function run() {
+    const start = performance.now();
+    const STEP = 55;          // ms a character holds one random glyph
+    const PER_CHAR = 2;       // steps before the next character locks
+    const total = (FINAL.length * PER_CHAR + 3) * STEP;
+
+    cancelAnimationFrame(raf);
+    const tick = (now) => {
+      const step = Math.floor((now - start) / STEP);
+      const settled = Math.floor(step / PER_CHAR);
+      el.textContent = [...FINAL]
+        .map((ch, i) => (i < settled ? ch : glyph(ch)))
+        .join("");
+      if (now - start < total) raf = requestAnimationFrame(tick);
+      else el.textContent = FINAL;
+    };
+    raf = requestAnimationFrame(tick);
+  }
+
+  function schedule() {
+    clearInterval(timer);
+    if (reduced.matches) { el.textContent = FINAL; return; }
+    timer = setInterval(() => { if (!document.hidden) run(); }, 7000);
+  }
+
+  reduced.addEventListener("change", schedule);
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) { cancelAnimationFrame(raf); el.textContent = FINAL; }
+  });
+  schedule();
 }
 
 document.addEventListener("DOMContentLoaded", init);

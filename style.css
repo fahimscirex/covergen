@@ -927,7 +927,20 @@ interior-accordion {
 .preview-actions .btn-quiet { height: var(--control-h); }
 
 /* Always dark on white, whatever the theme: that is what cameras read. */
-.qr-code { max-width: 100%; margin: 14px auto 0; padding: 0; overflow: hidden; border-radius: var(--r-md); background: #fff; box-shadow: var(--shadow-lift); }
+/* The box fills the dialog, but the SVG inside is sized in whole pixels by
+   renderShareQr() so each module lands on the pixel grid. A grid centres that
+   fixed-width child; auto margins cannot, since it is display:block. */
+.qr-code {
+  display: grid;
+  place-items: center;
+  max-width: 100%;
+  margin: 14px auto 0;
+  padding: 10px;
+  overflow: hidden;
+  border-radius: var(--r-md);
+  background: #fff;
+  box-shadow: var(--shadow-lift);
+}
 .qr-code svg { display: block; max-width: 100%; height: auto; shape-rendering: crispEdges; }
 
 /* Setup step ------------------------------------------------------------- */
