@@ -32,6 +32,11 @@
         </a>
       </header>
 
+      <div class="share-notice hidden" id="shareNotice" role="status">
+        <p id="shareNoticeText"></p>
+        <button type="button" class="btn-quiet" id="shareUndo">Undo, keep my own cover</button>
+      </div>
+
       <section class="setup hidden" id="setup" aria-labelledby="setupTitle">
         <h2 id="setupTitle">Set up your cover</h2>
         <p>Pick your university and the format your teacher asked for. The preview changes as you choose, so you can compare. You can change both, and everything else, later.</p>
@@ -190,6 +195,11 @@
           </interior-panel>
 
         </interior-accordion>
+
+        <div class="field-group">
+          <button type="button" class="btn-quiet" id="btnShare">Copy a link to this cover</button>
+          <p class="field-note" id="shareNote">Classmates who open it get this cover, ready to change the names and IDs.</p>
+        </div>
 
         <div class="form-actions-bottom">
           <interior-hold-confirm id="btnReset"

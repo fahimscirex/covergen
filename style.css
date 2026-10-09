@@ -720,6 +720,20 @@ interior-accordion {
 .uk-sign { display: grid; grid-template-columns: 1.6fr 1fr; gap: 6mm; margin-top: 12mm; }
 .uk-sign span { border-top: 1px solid #000; padding-top: 1.2mm; font-size: 9pt; }
 
+.share-notice {
+  margin: 14px 14px 0;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-radius: var(--r-lg);
+  background: var(--accent-soft);
+  color: var(--ink);
+  line-height: 1.5;
+}
+.share-notice .btn-quiet { align-self: flex-start; }
+.field-note { overflow-wrap: anywhere; }
+
 /* Setup step ------------------------------------------------------------- */
 .setup {
   margin: 14px;

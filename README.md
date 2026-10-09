@@ -19,6 +19,9 @@ only so the printed sheet matches what departments expect.
 - Search the university's teachers to fill in the Submitted To block
 - Individual or group submissions
 - Merge the cover with your own assignment PDF into a single file
+- Copy a link to your cover for classmates: everything travels in the link
+  itself (after the `#`, never sent to the server), about 300 characters for
+  a group of four. A directory teacher goes as a short hash of their name.
 - Remembers everything in `localStorage`, so next week you only change the topic
 - Adjustable document font, title and headline size, crest size, spacing, border
 - Light and dark. The sheet itself stays black on white, because it is print

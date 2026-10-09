@@ -189,8 +189,9 @@ const elements = {
   pDateValue: document.getElementById("pDateValue")
 };
 
-function init() {
+async function init() {
   loadSavedState();
+  const shared = await readShareLink();
   const univItems = UNIVERSITIES.map(u => ({ value: u.id, label: u.short, full: `${u.name} (${u.short})` }));
   elements.univSelect.items = univItems;
   elements.setupUniv.items = univItems;
@@ -206,6 +207,7 @@ function init() {
   showUniversity(state.univ, false);
   attachEventListeners();
   autoScalePreviewOnResize();
+  if (shared) showShareNotice(shared);
 }
 
 const MINOR_WORDS = new Set(["of", "and", "the", "for", "in", "on", "at", "to", "a", "an"]);
@@ -291,24 +293,30 @@ async function showUniversity(id, fill) {
   univ = data;
 
   // A listed university that failed to load keeps what is on screen.
-  if (fill && (univ || id === OTHER)) {
-    state.univName = univ ? univ.name.toUpperCase() : "";
-    state.univTagline = univ?.tagline || "";
-    state.showTagline = !!state.univTagline;
-    state.univAddress = univ?.address || "";
-    state.logo = univ?.logo || "";
-    state.teacherAffiliation = univ?.name || "";
-    state.studentDept = univ?.faculties[0]?.departments[0] || "";
-    // The last teacher belonged to the last university.
-    state.teacherName = "";
-    state.teacherDept = state.studentDept;
-    state.deptManual = false;
-  }
+  if (fill && (univ || id === OTHER)) Object.assign(state, universityDefaults(univ));
   populateDepartmentDropdown();
   populateTeacherSearch();
   syncFormFromState();
   updatePreview();
   if (fill) saveState();
+}
+
+// What picking a university fills in. A share link sends only what differs.
+function universityDefaults(data) {
+  const dept = data?.faculties[0]?.departments[0] || "";
+  return {
+    univName: data ? data.name.toUpperCase() : "",
+    univTagline: data?.tagline || "",
+    showTagline: !!data?.tagline,
+    univAddress: data?.address || "",
+    logo: data?.logo || "",
+    teacherAffiliation: data?.name || "",
+    studentDept: dept,
+    deptManual: false,
+    // The last teacher belonged to the last university.
+    teacherName: "",
+    teacherDept: dept,
+  };
 }
 
 function populateDepartmentDropdown() {
@@ -552,6 +560,8 @@ function attachEventListeners() {
     saveState();
   });
   elements.btnCopyHeading.addEventListener("click", copyMlaHeading);
+  document.getElementById("btnShare").addEventListener("click", copyShareLink);
+  document.getElementById("shareUndo").addEventListener("click", undoShare);
 
   elements.btnCrest.addEventListener("click", () => {
     elements.crestFile.value = "";
@@ -934,20 +944,189 @@ if ("serviceWorker" in navigator && location.protocol === "https:") {
 
 // Faculty directory search, an <interior-combobox>: the component owns the
 // filtering UI, keyboard contract and highlight; this owns what a pick means.
+// A directory's teachers as covers address them: "Asst. Prof. Jane Doe".
+function directoryTeachers(data) {
+  const depts = (data?.faculties || []).flatMap(f => f.departments);
+  return (data?.teachers || []).map(([name, t, d]) => {
+    const title = data.titles[t];
+    const prefix = /^(Dr|Prof)\b/i.test(name) ? "" : TITLE_PREFIX[title];
+    return { label: prefix ? `${prefix} ${name}` : name, title, dept: depts[d] };
+  });
+}
+
 function populateTeacherSearch() {
   const box = elements.teacherSearch;
-  const depts = (univ?.faculties || []).flatMap(f => f.departments);
-  box.items = (univ?.teachers || []).map(([name, t, d]) => {
-    const title = univ.titles[t];
-    const prefix = /^(Dr|Prof)\b/i.test(name) ? "" : TITLE_PREFIX[title];
-    const label = prefix ? `${prefix} ${name}` : name;
-    return { value: label, label, sub: [title, depts[d]].filter(Boolean).join(" / "), data: { name: label, dept: depts[d] } };
-  });
+  box.items = directoryTeachers(univ).map(t => ({
+    value: t.label, label: t.label, sub: [t.title, t.dept].filter(Boolean).join(" / "),
+    data: { name: t.label, dept: t.dept },
+  }));
   const short = UNIVERSITIES.find(u => u.id === state.univ)?.short || "";
   box.$input.placeholder = univ?.teachers.length
     ? `Search ${univ.teachers.length} ${short} teachers by name or department`
     : "No teacher list for this university, type it below";
 }
+
+/* ---- Share link -------------------------------------------------------
+ * The cover travels in the URL fragment (#s=...), which browsers never send
+ * to a server: nothing is stored anywhere and no request is made. To keep it
+ * short, only fields that differ from what picking the university gives are
+ * sent, keyed by their position in SHARE_FIELDS, then deflated. A directory
+ * teacher goes as a hash of their name, found again by searching, so a
+ * refreshed directory can't swap in the wrong person.
+ *
+ * SHARE_FIELDS is append-only: old links decode by position.
+ */
+const SHARE_FIELDS = [
+  "univ", "format", "paper", "mlaTitlePage", "subtitle", "wordCount", "declaration",
+  "univName", "headerCase", "headerPt", "univTagline", "showTagline", "univAddress", "showAddress",
+  "deptManual", "studentDept", "prefix", "topic", "courseTitle", "courseCode",
+  "teacherName", "teacherDept", "teacherAffiliation", "submissionMode",
+  "section", "session", "intake", "submissionDate", "showDate",
+  "font", "topicSize", "border", "spacing", "logoPx",
+];
+const SHARE_LIMIT = 64 * 1024; // decoded bytes; a real cover is well under 2 KB
+
+function shortHash(text) { // FNV-1a
+  let h = 0x811c9dc5;
+  for (const c of text) h = Math.imul(h ^ c.codePointAt(0), 0x01000193);
+  return (h >>> 0).toString(36);
+}
+
+const toBase64Url = (bytes) =>
+  btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const fromBase64Url = (text) =>
+  Uint8Array.from(atob(text.replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0));
+
+async function pipeBytes(bytes, transform, limit = Infinity) {
+  const reader = new Blob([bytes]).stream().pipeThrough(transform).getReader();
+  const parts = [];
+  let size = 0;
+  for (let r; !(r = await reader.read()).done;) {
+    size += r.value.length;
+    if (size > limit) { reader.cancel(); throw new Error("Share link too large"); }
+    parts.push(r.value);
+  }
+  return new Uint8Array(await new Blob(parts).arrayBuffer());
+}
+
+async function buildShareLink() {
+  const base = { ...DEFAULT_DATA, ...universityDefaults(univ) };
+  const p = {};
+  SHARE_FIELDS.forEach((k, i) => { if (state[k] !== base[k]) p[i] = state[k]; });
+  const i = (k) => SHARE_FIELDS.indexOf(k);
+  const teacher = directoryTeachers(univ).find(t => t.label === state.teacherName);
+  if (teacher) {
+    delete p[i("teacherName")];
+    if (state.teacherDept === teacher.dept) delete p[i("teacherDept")];
+    p.t = shortHash(teacher.label);
+  }
+  p.m = state.members.flatMap(m => [m.name || "", m.id || ""]);
+  // An uploaded crest would outweigh everything else; only its absence travels.
+  const crestLeftOut = state.logo !== base.logo;
+  if (crestLeftOut) p.c = 1;
+
+  const json = new TextEncoder().encode(JSON.stringify(p));
+  const packed = "CompressionStream" in window
+    ? "z" + toBase64Url(await pipeBytes(json, new CompressionStream("deflate-raw")))
+    : "j" + toBase64Url(json);
+  return { url: `${location.origin}${location.pathname}#s=${packed}`, crestLeftOut };
+}
+
+async function copyShareLink() {
+  const note = document.getElementById("shareNote");
+  const { url, crestLeftOut } = await buildShareLink();
+  const crest = crestLeftOut ? " Your uploaded crest is not in the link, so your friend has to upload it too." : "";
+  try {
+    await navigator.clipboard.writeText(url);
+    note.textContent = `Link copied. It carries every name and ID on this cover, so share it only with your classmates.${crest}`;
+  } catch {
+    note.textContent = `Copy this link: ${url}${crest}`;
+  }
+}
+
+/* A link is input from anyone: only known fields, of the default's type, in
+   range, and for the fields that become class names, one of the offered
+   values. The crest is never read from a link. */
+function validShareValue(key, value) {
+  const fallback = DEFAULT_DATA[key];
+  if (typeof value !== typeof fallback) return false;
+  if (typeof value === "number") return Number.isFinite(value) && value >= 8 && value <= 200;
+  if (typeof value !== "string") return true;
+  const choices = {
+    format: FORMATS.map(f => f.id), paper: ["a4", "letter"], submissionMode: ["individual", "group"],
+    headerCase: elements.headerCaseSelect.items, font: elements.fontSelect.items,
+    topicSize: elements.topicSizeSelect.items, border: elements.borderSelect.items,
+    spacing: elements.spacingSelect.items,
+  }[key];
+  if (choices) return choices.some(c => (c.value ?? c) === value);
+  return value.length <= 2000;
+}
+
+let sharedFrom = null; // the save a shared link replaced, for Undo
+
+async function readShareLink() {
+  const match = location.hash.match(/^#s=([zj])([\w-]{1,8000})$/);
+  if (!match) return null;
+  history.replaceState(null, "", location.pathname + location.search);
+  try {
+    let bytes = fromBase64Url(match[2]);
+    if (match[1] === "z") bytes = await pipeBytes(bytes, new DecompressionStream("deflate-raw"), SHARE_LIMIT);
+    const p = JSON.parse(new TextDecoder().decode(bytes));
+    if (!p || typeof p !== "object" || Array.isArray(p)) throw new Error("Not a cover");
+
+    const id = UNIVERSITIES.some(u => u.id === p[0]) ? p[0] : DEFAULT_DATA.univ;
+    const data = id === OTHER ? null : await loadUniversity(id).catch(() => null);
+    const next = { ...JSON.parse(JSON.stringify(DEFAULT_DATA)), ...universityDefaults(data), univ: id, setupDone: true };
+    SHARE_FIELDS.forEach((k, i) => {
+      if (k !== "univ" && p[i] !== undefined && validShareValue(k, p[i])) next[k] = p[i];
+    });
+
+    let teacherMissing = false;
+    if (typeof p.t === "string") {
+      const t = directoryTeachers(data).find(x => shortHash(x.label) === p.t);
+      if (t) {
+        next.teacherName = t.label;
+        if (p[SHARE_FIELDS.indexOf("teacherDept")] === undefined) next.teacherDept = t.dept;
+      } else teacherMissing = true;
+    }
+    if (Array.isArray(p.m) && p.m.length <= 60 && p.m.every(v => typeof v === "string" && v.length <= 200)) {
+      const members = [];
+      for (let j = 0; j < p.m.length; j += 2) members.push({ name: p.m[j], id: p.m[j + 1] || "" });
+      if (members.length) next.members = members;
+    }
+
+    try { sharedFrom = localStorage.getItem(STORAGE_KEY); } catch {}
+    state = next;
+    saveState();
+    return { teacherMissing, crestMissing: p.c === 1 };
+  } catch (e) {
+    console.warn("Could not read the shared cover:", e);
+    return { broken: true };
+  }
+}
+
+function showShareNotice({ broken, teacherMissing, crestMissing }) {
+  const box = document.getElementById("shareNotice");
+  const parts = broken
+    ? ["This share link is damaged or incomplete, so your own cover is unchanged. Ask for the link again."]
+    : ["You opened a cover shared with you. Change the names and IDs to yours before printing."];
+  if (teacherMissing) parts.push("The teacher is no longer in the directory; pick them again under Submitted to.");
+  if (crestMissing) parts.push("The sender used their own crest; upload it under University.");
+  document.getElementById("shareNoticeText").textContent = parts.join(" ");
+  document.getElementById("shareUndo").hidden = !!broken;
+  box.classList.remove("hidden");
+}
+
+function undoShare() {
+  try {
+    if (sharedFrom) localStorage.setItem(STORAGE_KEY, sharedFrom);
+    else localStorage.removeItem(STORAGE_KEY);
+  } catch {}
+  location.reload();
+}
+
+// Pasting a share link into an open tab changes only the fragment.
+addEventListener("hashchange", () => { if (location.hash.startsWith("#s=")) location.reload(); });
 
 /* Cover page + the student's own assignment PDF, as one file.
  *
