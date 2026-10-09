@@ -81,7 +81,7 @@ def main():
 
     d.text((70, 120), "covergen", font=bitrimus, fill=INK)
     d.text((70, 215), "Assignment cover pages", font=ui(42, True), fill=INK)
-    d.text((70, 268), "for Bangladeshi universities", font=ui(42, True), fill=ACCENT)
+    d.text((70, 268), "for Bangladeshi students", font=ui(42, True), fill=ACCENT)
     d.text((70, 345), "24 universities with real teacher lists.", font=ui(21), fill=MUTED)
     d.text((70, 378), "Live A4 preview. Free vector PDF.", font=ui(21), fill=MUTED)
     for i, tag in enumerate(["DU", "BUET", "NSU", "BRACU", "BUP", "+19"]):
