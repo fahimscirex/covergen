@@ -67,7 +67,10 @@ def person(s):
     s = clean(s)
     if s.isupper() and len(s) > 3:
         s = re.sub(r"(^|[\s.\-'])([a-z])", lambda m: m[1] + m[2].upper(), s.lower())
-    return s
+    # The app prefixes the designation ("Asst. Prof. ..."), so courtesy titles
+    # would double up; "-2" is how some sites tell namesakes apart.
+    s = re.sub(r"^(?:(?:Mr|Mrs|Ms|Miss|Engr)\.?\s+)+", "", s, flags=re.I)
+    return re.sub(r"\s*-\s*\d+$", "", s)
 
 
 def write(uid, *, name, tagline, address, logo, source, faculties, teachers):
