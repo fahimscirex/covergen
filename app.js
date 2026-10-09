@@ -1,55 +1,76 @@
 /**
- * BUP Assignment Cover Page Generator
+ * Assignment Cover Page Generator
  * Original Format with Optimized Academic Typography
  * Pure Vanilla JS, Zero dependencies.
  */
 
-const BUP_FACULTIES = {
-  FBS: {
-    short: "FBS",
-    full: "Faculty of Business Studies",
-    departments: [
-      { short: "Marketing", full: "Dept. of Marketing", val: "Department of Marketing" },
-      { short: "AIS", full: "Dept. of Accounting & Information Systems", val: "Department of Accounting & Information Systems (AIS)" },
-      { short: "Finance", full: "Dept. of Finance & Banking", val: "Department of Finance & Banking" },
-      { short: "Management", full: "Dept. of Management Studies", val: "Department of Management Studies" },
-      { short: "General BBA", full: "Dept. of Business Administration", val: "Department of Business Administration in General" }
-    ]
-  },
-  FASS: {
-    short: "FASS",
-    full: "Faculty of Arts & Social Sciences",
-    departments: [
-      { short: "Economics", full: "Dept. of Economics", val: "Department of Economics" },
-      { short: "English", full: "Dept. of English", val: "Department of English" },
-      { short: "Sociology", full: "Dept. of Sociology", val: "Department of Sociology" },
-      { short: "Pub. Admin", full: "Dept. of Public Administration", val: "Department of Public Administration" },
-      { short: "Dev. Studies", full: "Dept. of Development Studies", val: "Department of Development Studies" },
-      { short: "Disaster Mgt.", full: "Dept. of Disaster & Human Security", val: "Department of Disaster & Human Security Management" }
-    ]
-  },
-  FST: {
-    short: "FST",
-    full: "Faculty of Science & Technology",
-    departments: [
-      { short: "CSE", full: "Dept. of Computer Science & Engineering", val: "Department of Computer Science & Engineering (CSE)" },
-      { short: "ICT", full: "Dept. of Information & Communication Technology", val: "Department of Information & Communication Technology (ICT)" },
-      { short: "Env. Science", full: "Dept. of Environmental Science", val: "Department of Environmental Science" }
-    ]
-  },
-  FSSS: {
-    short: "FSSS",
-    full: "Faculty of Security & Strategic Studies",
-    departments: [
-      { short: "IR", full: "Dept. of International Relations", val: "Department of International Relations (IR)" },
-      { short: "Law", full: "Dept. of Law", val: "Department of Law (LL.B)" },
-      { short: "Peace & Conflict", full: "Dept. of Peace, Conflict & Human Rights", val: "Department of Peace, Conflict & Human Rights" },
-      { short: "MCJ", full: "Dept. of Mass Communication & Journalism", val: "Department of Mass Communication & Journalism" }
-    ]
-  }
+/* The picker's universities. Each has a data/<id>.json written by
+   scrapers/<id>.py, holding its faculties, departments and teachers. A file is
+   fetched only when its university is picked, so a BUP student never downloads
+   anyone else's directory. */
+const UNIVERSITIES = [
+  { id: "bup", short: "BUP", name: "Bangladesh University of Professionals" },
+  { id: "aiub", short: "AIUB", name: "American International University-Bangladesh" },
+  { id: "aust", short: "AUST", name: "Ahsanullah University of Science and Technology" },
+  { id: "brac", short: "BRACU", name: "BRAC University" },
+  { id: "bau", short: "BAU", name: "Bangladesh Agricultural University" },
+  { id: "buet", short: "BUET", name: "Bangladesh University of Engineering and Technology" },
+  { id: "butex", short: "BUTEX", name: "Bangladesh University of Textiles" },
+  { id: "cu", short: "CU", name: "University of Chittagong" },
+  { id: "cuet", short: "CUET", name: "Chittagong University of Engineering & Technology" },
+  { id: "diu", short: "DIU", name: "Daffodil International University" },
+  { id: "du", short: "DU", name: "University of Dhaka" },
+  { id: "ewu", short: "EWU", name: "East West University" },
+  { id: "iub", short: "IUB", name: "Independent University, Bangladesh" },
+  { id: "iut", short: "IUT", name: "Islamic University of Technology" },
+  { id: "jnu", short: "JnU", name: "Jagannath University" },
+  { id: "ju", short: "JU", name: "Jahangirnagar University" },
+  { id: "ku", short: "KU", name: "Khulna University" },
+  { id: "kuet", short: "KUET", name: "Khulna University of Engineering & Technology" },
+  { id: "nsu", short: "NSU", name: "North South University" },
+  { id: "ru", short: "RU", name: "University of Rajshahi" },
+  { id: "ruet", short: "RUET", name: "Rajshahi University of Engineering & Technology" },
+  { id: "sust", short: "SUST", name: "Shahjalal University of Science and Technology" },
+  { id: "uiu", short: "UIU", name: "United International University" },
+  { id: "ulab", short: "ULAB", name: "University of Liberal Arts Bangladesh" },
+  { id: "other", short: "Other", name: "Not listed, type it in" },
+];
+const OTHER = "other"; // has no data file: everything is typed, the crest uploaded
+
+/* Cover formats. "bd" is the decorative cover Bangladeshi universities ask
+   for; the rest follow APA 7, MLA 9 and Chicago (Turabian) as their manuals
+   print them, plain on purpose, and a UK/Australian-style coursework sheet.
+   Each has a template in index.html and a builder in assets/cover-pdf.js. */
+const FORMATS = [
+  { id: "bd", label: "Bangladeshi", desc: "Crest, masthead, Submitted To and By blocks" },
+  { id: "apa", label: "APA 7", desc: "Plain centered title page, double-spaced" },
+  { id: "mla", label: "MLA 9", desc: "No cover: a heading on your first page" },
+  { id: "chicago", label: "Chicago / Turabian", desc: "Title a third down, your details below" },
+  { id: "uk", label: "UK / Australian sheet", desc: "Details table and a signed declaration" },
+];
+
+const DEFAULT_DECLARATION = "I confirm that this assignment is my own work, that every source I used is acknowledged, and that it has not been submitted for assessment anywhere else. I understand that plagiarism and collusion are breaches of academic integrity.";
+
+// Sentinel dropdown value: the department is typed rather than picked.
+const MANUAL = "__manual";
+
+// "Asst. Prof. Jane Doe" is how covers address a teacher.
+const TITLE_PREFIX = {
+  "Professor": "Prof.", "Distinguished Professor": "Prof.",
+  "Associate Professor": "Assoc. Prof.", "Assistant Professor": "Asst. Prof.",
+  "Senior Lecturer": "Sr. Lecturer", "Lecturer": "Lecturer",
 };
 
 const DEFAULT_DATA = {
+  setupDone: false,
+  format: "bd",
+  paper: "a4",
+  mlaTitlePage: false,
+  subtitle: "",
+  wordCount: "",
+  declaration: DEFAULT_DECLARATION,
+  univ: "bup",
+  logo: "assets/bup_logo.svg",
   univName: "BANGLADESH UNIVERSITY OF PROFESSIONALS",
   headerCase: "header-caps",
   headerPt: 21,
@@ -57,8 +78,7 @@ const DEFAULT_DATA = {
   showTagline: true,
   univAddress: "Mirpur Cantonment, Dhaka-1216, Bangladesh",
   showAddress: true,
-  faculty: "FBS",
-  department: "Department of Marketing",
+  deptManual: false,
   prefix: "Assignment on",
   topic: "Key Concepts of Auditing",
   courseTitle: "Taxation and Auditing",
@@ -86,7 +106,10 @@ const DEFAULT_DATA = {
 const STORAGE_KEY = "bup_cover_original_v4";
 
 let state = { ...DEFAULT_DATA };
+let univ = null;          // the picked university's data/<id>.json, once loaded
+const univFetches = {};
 let currentZoom = 1.0;
+let refitPreview = () => {};
 
 const elements = {
   univNameInput: document.getElementById("univNameInput"),
@@ -96,7 +119,23 @@ const elements = {
   showTagline: document.getElementById("showTagline"),
   univAddressInput: document.getElementById("univAddressInput"),
   showAddress: document.getElementById("showAddress"),
-  facultyPreset: document.getElementById("facultyPreset"),
+  univSelect: document.getElementById("univSelect"),
+  formatSelect: document.getElementById("formatSelect"),
+  mlaTitlePage: document.getElementById("mlaTitlePage"),
+  btnCopyHeading: document.getElementById("btnCopyHeading"),
+  subtitle: document.getElementById("subtitle"),
+  wordCount: document.getElementById("wordCount"),
+  declaration: document.getElementById("declaration"),
+  paperSelect: document.getElementById("paperSelect"),
+  coverForm: document.getElementById("coverForm"),
+  setup: document.getElementById("setup"),
+  setupUniv: document.getElementById("setupUniv"),
+  setupFormats: document.getElementById("setupFormats"),
+  setupDone: document.getElementById("setupDone"),
+  pUkCrest: document.getElementById("pUkCrest"),
+  pUkRows: document.getElementById("pUkRows"),
+  btnCrest: document.getElementById("btnCrest"),
+  crestFile: document.getElementById("crestFile"),
   deptPreset: document.getElementById("deptPreset"),
   assignmentPrefix: document.getElementById("assignmentPrefix"),
   assignmentTopic: document.getElementById("assignmentTopic"),
@@ -150,22 +189,36 @@ const elements = {
   pDateValue: document.getElementById("pDateValue")
 };
 
-function init() {
+async function init() {
   loadSavedState();
-  populateDepartmentDropdown();
+  const shared = await readShareLink();
+  const univItems = UNIVERSITIES.map(u => ({ value: u.id, label: u.short, full: `${u.name} (${u.short})` }));
+  elements.univSelect.items = univItems;
+  elements.setupUniv.items = univItems;
+  elements.formatSelect.items = FORMATS.map(f => ({ value: f.id, label: f.label, full: f.label }));
+  elements.setupFormats.innerHTML = FORMATS.map(f => `
+    <button type="button" class="format-option" role="radio" data-format="${f.id}">
+      <b>${f.label}</b><span>${f.desc}</span>
+    </button>`).join("");
+  showSetup(!state.setupDone);
   syncFormFromState();
   renderMembersInputs();
-  setupFacultyAutocomplete();
   updatePreview();
+  showUniversity(state.univ, false);
   attachEventListeners();
   autoScalePreviewOnResize();
+  if (shared) showShareNotice(shared);
 }
+
+const MINOR_WORDS = new Set(["of", "and", "the", "for", "in", "on", "at", "to", "a", "an"]);
 
 function toNaturalTitleCase(str) {
   if (!str || typeof str !== "string") return "";
   const trimmed = str.trim();
   if (trimmed.length > 3 && trimmed === trimmed.toUpperCase() && /[A-Z]/.test(trimmed)) {
-    return trimmed.toLowerCase().replace(/(^|\s|-|\.)([a-z])/g, (m, p1, p2) => p1 + p2.toUpperCase());
+    return trimmed.toLowerCase()
+      .replace(/(^|\s|-|\.)([a-z]+)/g, (m, p1, w) =>
+        p1 + (p1 && MINOR_WORDS.has(w) ? w : w[0].toUpperCase() + w.slice(1)));
   }
   return str;
 }
@@ -179,10 +232,12 @@ function loadSavedState() {
     if (saved) {
       const parsed = JSON.parse(saved);
       state = Object.assign({}, DEFAULT_DATA, parsed);
+      // Saves from before the setup step: these people are past it.
+      if (parsed.setupDone === undefined) state.setupDone = true;
       if (state.teacherName) {
         state.teacherName = toNaturalTitleCase(state.teacherName);
       }
-      state.univName = (state.univName || "BANGLADESH UNIVERSITY OF PROFESSIONALS").toUpperCase();
+      state.univName = (state.univName || "").toUpperCase();
       // The crest used to be three presets; carry those saves over to the
       // variable size so nobody's stored layout jumps.
       if (typeof state.logoPx !== "number") {
@@ -200,6 +255,7 @@ function loadSavedState() {
 let saveStatusTimer = null;
 
 function saveState() {
+  if (!document.getElementById("shareQr").classList.contains("hidden")) renderShareQr();
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     showSaved();
@@ -219,19 +275,67 @@ function showSaved() {
   }, 1600);
 }
 
+function loadUniversity(id) {
+  univFetches[id] ||= fetch(`data/${id}.json`)
+    .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+    .catch(e => { delete univFetches[id]; throw e; });
+  return univFetches[id];
+}
+
+/* `fill` is a fresh pick from the dropdown: it overwrites the masthead and the
+   affiliation. On page load the saved (possibly hand-edited) values win. */
+async function showUniversity(id, fill) {
+  let data = null;
+  if (id !== OTHER) {
+    try { data = await loadUniversity(id); }
+    catch (e) { console.warn(`Could not load data/${id}.json:`, e); }
+  }
+  if (state.univ !== id) return; // another university was picked meanwhile
+  univ = data;
+
+  // A listed university that failed to load keeps what is on screen.
+  if (fill && (univ || id === OTHER)) Object.assign(state, universityDefaults(univ));
+  populateDepartmentDropdown();
+  populateTeacherSearch();
+  syncFormFromState();
+  updatePreview();
+  if (fill) saveState();
+}
+
+// What picking a university fills in. A share link sends only what differs.
+function universityDefaults(data) {
+  const dept = data?.faculties[0]?.departments[0] || "";
+  return {
+    univName: data ? data.name.toUpperCase() : "",
+    univTagline: data?.tagline || "",
+    showTagline: !!data?.tagline,
+    univAddress: data?.address || "",
+    logo: data?.logo || "",
+    teacherAffiliation: data?.name || "",
+    studentDept: dept,
+    deptManual: false,
+    // The last teacher belonged to the last university.
+    teacherName: "",
+    teacherDept: dept,
+  };
+}
+
 function populateDepartmentDropdown() {
-  const selectedFaculty = elements.facultyPreset.value || state.faculty || "FBS";
-  const faculty = BUP_FACULTIES[selectedFaculty];
-  const items = faculty
-    ? faculty.departments.map(d => ({ value: d.val, label: d.short, full: d.full }))
-    : [];
+  const items = (univ?.faculties || []).flatMap(f => f.departments.map(d => {
+    const label = d.replace(/^Department of /, "");
+    return { value: d, label, full: `${label} · ${f.short}` };
+  }));
+  items.push({ value: MANUAL, label: "Typed manually", full: "Not listed? Type it manually" });
   elements.deptPreset.items = items;
-  const match = items.find(i => i.value === state.department);
-  elements.deptPreset.value = (match || items[0] || {}).value || "";
+  // A saved department the directory does not list (renamed, or typed by
+  // hand) stays as typed rather than being swapped for a listed one.
+  if (!items.some(i => i.value === state.studentDept)) state.deptManual = true;
+  elements.deptPreset.value = state.deptManual ? MANUAL : state.studentDept;
+  elements.studentDept.hidden = !state.deptManual;
 }
 
 function syncFormFromState() {
-  if (elements.univNameInput) elements.univNameInput.value = state.univName || "BANGLADESH UNIVERSITY OF PROFESSIONALS";
+  if (elements.univNameInput) elements.univNameInput.value = state.univName;
   if (elements.headerCaseSelect) elements.headerCaseSelect.value = state.headerCase || "header-caps";
   if (elements.headerSizeSelect) {
     elements.headerSizeSelect.setAttribute("value", String(state.headerPt || 21));
@@ -241,14 +345,22 @@ function syncFormFromState() {
   if (elements.univAddressInput) elements.univAddressInput.value = state.univAddress || "";
   if (elements.showAddress) elements.showAddress.checked = !!state.showAddress;
 
-  elements.facultyPreset.value = state.faculty || "FBS";
+  elements.univSelect.value = state.univ;
+  elements.setupUniv.value = state.univ;
+  elements.formatSelect.value = state.format;
+  elements.mlaTitlePage.checked = !!state.mlaTitlePage;
+  elements.subtitle.value = state.subtitle || "";
+  elements.wordCount.value = state.wordCount || "";
+  elements.declaration.value = state.declaration || "";
+  elements.paperSelect.value = state.paper;
+  applyFormat();
   elements.assignmentPrefix.value = state.prefix || "Assignment on";
   elements.assignmentTopic.value = state.topic || "";
   elements.courseTitle.value = state.courseTitle || "";
   elements.courseCode.value = state.courseCode || "";
   elements.teacherName.value = state.teacherName || "";
   elements.teacherDept.value = state.teacherDept || "";
-  elements.teacherAffiliation.value = state.teacherAffiliation || "Bangladesh University of Professionals";
+  elements.teacherAffiliation.value = state.teacherAffiliation;
 
   elements.studentSection.value = state.section || "";
   elements.studentSession.value = state.session || "";
@@ -319,7 +431,7 @@ function renderMembersInputs() {
 }
 
 function updatePreview() {
-  const rawUniv = state.univName || "BANGLADESH UNIVERSITY OF PROFESSIONALS";
+  const rawUniv = state.univName || "";
   if (state.headerCase === "header-caps") {
     elements.pUnivName.textContent = rawUniv.toUpperCase();
   } else {
@@ -348,7 +460,7 @@ function updatePreview() {
 
   elements.pTeacherName.textContent = state.teacherName || "";
   elements.pTeacherDept.textContent = state.teacherDept || "";
-  elements.pTeacherAffil.textContent = state.teacherAffiliation || "Bangladesh University of Professionals";
+  elements.pTeacherAffil.textContent = state.teacherAffiliation;
 
   const tbody = elements.pStudentsTable.querySelector("tbody");
   tbody.innerHTML = "";
@@ -395,37 +507,102 @@ function updatePreview() {
   }
 
   elements.pUnivName.style.fontSize = `${state.headerPt || 21}pt`;
-  elements.a4Sheet.className = `a4-sheet ${state.font || "font-times"} ${state.headerCase || "header-caps"} ${state.topicSize || "topic-lg"} ${state.border || "border-none"} ${state.spacing || "spacing-balanced"}`;
+  // Border and spacing belong to the Bangladeshi layout; the others are fixed.
+  const bd = state.format === "bd";
+  elements.a4Sheet.className = `a4-sheet ${state.font || "font-times"} ${state.headerCase || "header-caps"} ${state.topicSize || "topic-lg"} ${bd ? state.border || "border-none" : ""} ${state.spacing || "spacing-balanced"}`;
+
+  const template = state.format === "mla" && state.mlaTitlePage ? "mlatp" : state.format;
+  elements.a4Sheet.querySelectorAll(".sheet-inner").forEach(el =>
+    el.classList.toggle("hidden", el.dataset.format !== template));
+  if (!bd) {
+    const v = coverValues();
+    elements.a4Sheet.querySelectorAll("[data-f]").forEach(el => { el.textContent = v[el.dataset.f] || ""; });
+    elements.pUkRows.innerHTML = v.ukRows.map(([k, val]) =>
+      `<tr><th>${escapeHtml(k)}</th><td>${escapeHtml(val)}</td></tr>`).join("");
+    if (state.logo) elements.pUkCrest.src = state.logo;
+    else elements.pUkCrest.removeAttribute("src");
+  }
+  elements.pLogo.parentElement.classList.toggle("hidden", !state.logo);
+  if (state.logo && elements.pLogo.getAttribute("src") !== state.logo) elements.pLogo.src = state.logo;
   elements.pLogo.style.height = `${state.logoPx || 112}px`;
 }
 
 function attachEventListeners() {
-  elements.facultyPreset.addEventListener("change", (e) => {
-    state.faculty = e.target.value;
-    const first = BUP_FACULTIES[state.faculty]?.departments[0];
-    if (first) state.department = first.val;
-    populateDepartmentDropdown();
-    if (first) {
-      state.studentDept = first.val;
-      elements.studentDept.value = first.val;
-    }
+  const pickUniversity = (id) => {
+    state.univ = id;
+    elements.univSelect.value = id;
+    elements.setupUniv.value = id;
+    showUniversity(id, true);
+  };
+  elements.univSelect.addEventListener("change", (e) => pickUniversity(e.target.value));
+  elements.setupUniv.addEventListener("change", (e) => pickUniversity(e.target.value));
+
+  elements.formatSelect.addEventListener("change", (e) => pickFormat(e.target.value));
+  elements.setupFormats.addEventListener("click", (e) => {
+    const option = e.target.closest("[data-format]");
+    if (option) pickFormat(option.dataset.format);
+  });
+  elements.setupDone.addEventListener("click", () => {
+    state.setupDone = true;
+    showSetup(false);
+    saveState();
+  });
+
+  elements.paperSelect.addEventListener("change", (e) => {
+    state.paper = e.detail.value;
+    applyFormat();
+    updatePreview();
+    saveState();
+  });
+  elements.mlaTitlePage.addEventListener("change", (e) => {
+    state.mlaTitlePage = e.target.checked;
+    applyFormat();
+    updatePreview();
+    saveState();
+  });
+  elements.btnCopyHeading.addEventListener("click", copyMlaHeading);
+  document.getElementById("btnShare").addEventListener("click", copyShareLink);
+  document.getElementById("btnQr").addEventListener("click", toggleShareQr);
+  document.getElementById("shareUndo").addEventListener("click", undoShare);
+
+  elements.btnCrest.addEventListener("click", () => {
+    elements.crestFile.value = "";
+    elements.crestFile.click();
+  });
+  elements.crestFile.addEventListener("change", async () => {
+    const file = elements.crestFile.files[0];
+    if (!file) return;
+    try { state.logo = await shrinkImage(file); }
+    catch (e) { console.warn("Could not read that image:", e); return; }
     updatePreview();
     saveState();
   });
 
   elements.deptPreset.addEventListener("change", (e) => {
-    const val = e.target.value;
-    if (val) {
-      state.department = val;
-      state.studentDept = val;
-      elements.studentDept.value = val;
-      if (!elements.teacherDept.value || elements.teacherDept.value.startsWith("Department")) {
-        state.teacherDept = val;
-        elements.teacherDept.value = val;
+    state.deptManual = e.target.value === MANUAL;
+    elements.studentDept.hidden = !state.deptManual;
+    if (!state.deptManual) {
+      state.studentDept = e.target.value;
+      elements.studentDept.value = state.studentDept;
+      if (!state.teacherDept || state.teacherDept.startsWith("Department")) {
+        state.teacherDept = state.studentDept;
+        elements.teacherDept.value = state.teacherDept;
       }
-      updatePreview();
-      saveState();
     }
+    updatePreview();
+    saveState();
+  });
+
+  elements.teacherSearch.addEventListener("pick", (e) => {
+    const t = e.detail.item.data;
+    state.teacherName = t.name;
+    state.teacherDept = t.dept || state.teacherDept;
+    state.teacherAffiliation = univ?.name || state.teacherAffiliation;
+    elements.teacherName.value = state.teacherName;
+    elements.teacherDept.value = state.teacherDept;
+    elements.teacherAffiliation.value = state.teacherAffiliation;
+    updatePreview();
+    saveState();
   });
 
   const bind = (el, key) => {
@@ -461,6 +638,9 @@ function attachEventListeners() {
   bind(elements.assignmentTopic, "topic");
   bind(elements.courseTitle, "courseTitle");
   bind(elements.courseCode, "courseCode");
+  bind(elements.subtitle, "subtitle");
+  bind(elements.wordCount, "wordCount");
+  bind(elements.declaration, "declaration");
   bind(elements.teacherName, "teacherName");
   bind(elements.teacherDept, "teacherDept");
   bind(elements.teacherAffiliation, "teacherAffiliation");
@@ -564,10 +744,11 @@ function attachEventListeners() {
   elements.btnReset.addEventListener("confirm", () => {
     localStorage.removeItem(STORAGE_KEY);
     state = JSON.parse(JSON.stringify(DEFAULT_DATA));
-    populateDepartmentDropdown();
+    showSetup(true);
     syncFormFromState();
     renderMembersInputs();
     updatePreview();
+    showUniversity(state.univ, false);
   });
 
   // Clears what changes per assignment. Section, session, department and
@@ -586,6 +767,137 @@ function attachEventListeners() {
   });
 }
 
+function showSetup(on) {
+  elements.setup.classList.toggle("hidden", !on);
+  elements.coverForm.classList.toggle("hidden", on);
+}
+
+// The conventional typeface comes with the format; it stays changeable.
+function pickFormat(id) {
+  state.format = id;
+  state.font = id === "uk" ? "font-arial" : "font-times";
+  elements.formatSelect.value = id;
+  elements.fontSelect.value = state.font;
+  applyFormat();
+  updatePreview();
+  saveState();
+}
+
+/* Everything that depends on the format but is not the sheet's content:
+   which form fields apply, the paper, and whether a merge makes sense. */
+function applyFormat() {
+  const template = state.format === "mla" && state.mlaTitlePage ? "mlatp" : state.format;
+  document.querySelectorAll("[data-for]").forEach(el =>
+    el.classList.toggle("hidden", !el.dataset.for.split(" ").includes(state.format)));
+  elements.setupFormats.querySelectorAll("[data-format]").forEach(el =>
+    el.setAttribute("aria-checked", String(el.dataset.format === state.format)));
+
+  const letter = state.paper === "letter";
+  document.documentElement.classList.toggle("paper-letter", letter);
+  document.getElementById("paperBadge").textContent = letter ? "Live Letter" : "Live A4";
+  let pageRule = document.getElementById("pageRule");
+  if (!pageRule) {
+    pageRule = document.head.appendChild(document.createElement("style"));
+    pageRule.id = "pageRule";
+  }
+  pageRule.textContent = `@page { size: ${letter ? "letter" : "A4"} portrait; margin: 0; }`;
+  refitPreview();
+
+  // MLA's heading goes on the student's own first page; there is no cover to
+  // put in front of it.
+  elements.btnMerge.classList.toggle("hidden", template === "mla");
+}
+
+function formatDate(locale) {
+  const [y, m, d] = (state.submissionDate || "").split("-").map(Number);
+  if (!y || !m || !d) return state.submissionDate || "";
+  return new Date(y, m - 1, d).toLocaleDateString(locale, { year: "numeric", month: "long", day: "numeric" });
+}
+
+// "A, B, and C", the way APA lists co-authors on one line.
+function listJoin(names) {
+  if (names.length < 3) return names.join(" and ");
+  return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
+}
+
+/* The text every international template and its PDF builder print, worked
+   out once so the screen and the merged file cannot disagree. */
+function coverValues() {
+  const members = activeMembers();
+  const names = members.map(m => (m.name || "").trim()).filter(Boolean);
+  const ids = members.map(m => (m.id || "").trim()).filter(Boolean);
+  const title = (state.topic || "").trim() || "Untitled";
+  const sub = (state.subtitle || "").trim();
+  const code = (state.courseCode || "").trim();
+  const course = (state.courseTitle || "").trim();
+  const univTitle = univ && state.univName === univ.name.toUpperCase()
+    ? univ.name : toNaturalTitleCase(state.univName || "");
+  const faculty = univ?.faculties.find(f => f.departments.includes(state.studentDept));
+  const dateDMY = formatDate("en-GB");
+  const fullTitle = sub ? `${title}: ${sub}` : title;
+  return {
+    fullTitle,
+    topicColon: sub ? `${title}:` : title,
+    subtitle: sub,
+    authorsInline: listJoin(names),
+    authorsLines: names.join("\n"),
+    affiliation: [state.studentDept, univTitle].filter(Boolean).join(", "),
+    courseLine: code && course ? `${code}: ${course}` : code || course,
+    teacherName: (state.teacherName || "").trim(),
+    dateLong: formatDate("en-US"),
+    dateDMY,
+    mlaRunHead: `${(names[0] || "").split(/\s+/).pop()} 1`.trim(),
+    univTitle,
+    faculty: faculty && faculty.name !== state.studentDept ? faculty.name : "",
+    declaration: (state.declaration || "").trim(),
+    ukRows: [
+      [names.length > 1 ? "Student names" : "Student name", names.join("\n")],
+      [ids.length > 1 ? "Student IDs" : "Student ID", ids.join("\n")],
+      ["Module code and title", [code, course].filter(Boolean).join(" ")],
+      ["Assignment title", fullTitle],
+      ["Module leader", (state.teacherName || "").trim()],
+      ["Submission date", dateDMY],
+      ["Word count", (state.wordCount || "").trim()],
+    ],
+  };
+}
+
+async function copyMlaHeading() {
+  const v = coverValues();
+  const text = [v.authorsLines, v.teacherName, v.courseLine, v.dateDMY, v.fullTitle]
+    .filter(Boolean).join("\n");
+  const btn = elements.btnCopyHeading;
+  const label = btn.textContent;
+  try {
+    await navigator.clipboard.writeText(text);
+    btn.textContent = "Copied. Paste it at the top of your document";
+  } catch {
+    btn.textContent = "Could not copy. Select the heading on the sheet instead";
+  }
+  setTimeout(() => { btn.textContent = label; }, 2200);
+}
+
+// An uploaded crest lives in localStorage as a data URL, so it is redrawn at
+// 300px tall first: sharp at the largest crest size, and a few dozen KB
+// rather than whatever the original weighed.
+async function shrinkImage(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    const nw = img.naturalWidth || 300, nh = img.naturalHeight || 300;
+    const h = Math.min(300, nh), w = Math.round(h * nw / nh);
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+    return canvas.toDataURL("image/png");
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 function applyZoom(zoom) {
   currentZoom = zoom;
   elements.zoomStepper.setAttribute("value", String(Math.round(zoom * 100)));
@@ -601,7 +913,7 @@ function autoScalePreviewOnResize() {
     const cs = getComputedStyle(previewScroll);
     const containerWidth =
       previewScroll.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-    const sheetNaturalWidth = 210 * 3.7795275591;
+    const sheetNaturalWidth = (state.paper === "letter" ? 215.9 : 210) * 3.7795275591;
     if (containerWidth < sheetNaturalWidth) {
       const fitZoom = Math.max(0.25, containerWidth / sheetNaturalWidth);
       // floor, never round up: rounding up makes the sheet wider than the container
@@ -612,6 +924,7 @@ function autoScalePreviewOnResize() {
   };
 
   window.addEventListener("resize", updateScale);
+  refitPreview = updateScale;
   updateScale();
 }
 
@@ -626,32 +939,240 @@ function escapeHtml(str) {
 
 document.addEventListener("DOMContentLoaded", init);
 
-// Setup search & autocomplete for 387 BUP faculty members
-// Faculty directory search, now an <interior-combobox>: the component owns the
+// Serves repeat visits from the browser's cache; see sw.js.
+if ("serviceWorker" in navigator && location.protocol === "https:") {
+  navigator.serviceWorker.register("sw.js").catch((e) => console.warn("No offline cache:", e));
+}
+
+// Faculty directory search, an <interior-combobox>: the component owns the
 // filtering UI, keyboard contract and highlight; this owns what a pick means.
-function setupFacultyAutocomplete() {
-  const box = elements.teacherSearch;
-  if (!box) return;
-
-  box.items = (window.BUP_FACULTY_DATA || []).map((f) => ({
-    value: f.formattedName || f.name,
-    label: f.formattedName || f.name,
-    sub: [f.designation, f.department].filter(Boolean).join(" / "),
-    data: f,
-  }));
-
-  box.addEventListener("pick", (e) => {
-    const f = e.detail.item.data;
-    state.teacherName = f.formattedName || f.name;
-    state.teacherDept = f.department || state.teacherDept;
-    state.teacherAffiliation = "Bangladesh University of Professionals";
-    elements.teacherName.value = state.teacherName;
-    elements.teacherDept.value = state.teacherDept;
-    elements.teacherAffiliation.value = state.teacherAffiliation;
-    updatePreview();
-    saveState();
+// A directory's teachers as covers address them: "Asst. Prof. Jane Doe".
+function directoryTeachers(data) {
+  const depts = (data?.faculties || []).flatMap(f => f.departments);
+  return (data?.teachers || []).map(([name, t, d]) => {
+    const title = data.titles[t];
+    const prefix = /^(Dr|Prof)\b/i.test(name) ? "" : TITLE_PREFIX[title];
+    return { label: prefix ? `${prefix} ${name}` : name, title, dept: depts[d] };
   });
 }
+
+function populateTeacherSearch() {
+  const box = elements.teacherSearch;
+  box.items = directoryTeachers(univ).map(t => ({
+    value: t.label, label: t.label, sub: [t.title, t.dept].filter(Boolean).join(" / "),
+    data: { name: t.label, dept: t.dept },
+  }));
+  const short = UNIVERSITIES.find(u => u.id === state.univ)?.short || "";
+  box.$input.placeholder = univ?.teachers.length
+    ? `Search ${univ.teachers.length} ${short} teachers by name or department`
+    : "No teacher list for this university, type it below";
+}
+
+/* ---- Share link -------------------------------------------------------
+ * The cover travels in the URL fragment (#s=...), which browsers never send
+ * to a server: nothing is stored anywhere and no request is made. To keep it
+ * short, only fields that differ from what picking the university gives are
+ * sent, keyed by their position in SHARE_FIELDS, then deflated. A directory
+ * teacher goes as a hash of their name, found again by searching, so a
+ * refreshed directory can't swap in the wrong person.
+ *
+ * SHARE_FIELDS is append-only: old links decode by position.
+ */
+const SHARE_FIELDS = [
+  "univ", "format", "paper", "mlaTitlePage", "subtitle", "wordCount", "declaration",
+  "univName", "headerCase", "headerPt", "univTagline", "showTagline", "univAddress", "showAddress",
+  "deptManual", "studentDept", "prefix", "topic", "courseTitle", "courseCode",
+  "teacherName", "teacherDept", "teacherAffiliation", "submissionMode",
+  "section", "session", "intake", "submissionDate", "showDate",
+  "font", "topicSize", "border", "spacing", "logoPx",
+];
+const SHARE_LIMIT = 64 * 1024; // decoded bytes; a real cover is well under 2 KB
+
+function shortHash(text) { // FNV-1a
+  let h = 0x811c9dc5;
+  for (const c of text) h = Math.imul(h ^ c.codePointAt(0), 0x01000193);
+  return (h >>> 0).toString(36);
+}
+
+const toBase64Url = (bytes) =>
+  btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const fromBase64Url = (text) =>
+  Uint8Array.from(atob(text.replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0));
+
+async function pipeBytes(bytes, transform, limit = Infinity) {
+  const reader = new Blob([bytes]).stream().pipeThrough(transform).getReader();
+  const parts = [];
+  let size = 0;
+  for (let r; !(r = await reader.read()).done;) {
+    size += r.value.length;
+    if (size > limit) { reader.cancel(); throw new Error("Share link too large"); }
+    parts.push(r.value);
+  }
+  return new Uint8Array(await new Blob(parts).arrayBuffer());
+}
+
+async function buildShareLink() {
+  const base = { ...DEFAULT_DATA, ...universityDefaults(univ) };
+  const p = {};
+  SHARE_FIELDS.forEach((k, i) => { if (state[k] !== base[k]) p[i] = state[k]; });
+  const i = (k) => SHARE_FIELDS.indexOf(k);
+  const teacher = directoryTeachers(univ).find(t => t.label === state.teacherName);
+  if (teacher) {
+    delete p[i("teacherName")];
+    if (state.teacherDept === teacher.dept) delete p[i("teacherDept")];
+    p.t = shortHash(teacher.label);
+  }
+  p.m = state.members.flatMap(m => [m.name || "", m.id || ""]);
+  // An uploaded crest would outweigh everything else; only its absence travels.
+  const crestLeftOut = state.logo !== base.logo;
+  if (crestLeftOut) p.c = 1;
+
+  const json = new TextEncoder().encode(JSON.stringify(p));
+  const packed = "CompressionStream" in window
+    ? "z" + toBase64Url(await pipeBytes(json, new CompressionStream("deflate-raw")))
+    : "j" + toBase64Url(json);
+  return { url: `${location.origin}${location.pathname}#s=${packed}`, crestLeftOut };
+}
+
+async function copyShareLink() {
+  const note = document.getElementById("shareNote");
+  const { url, crestLeftOut } = await buildShareLink();
+  const crest = crestLeftOut ? " Your uploaded crest is not in the link, so your friend has to upload it too." : "";
+  try {
+    await navigator.clipboard.writeText(url);
+    note.textContent = `Link copied. It carries every name and ID on this cover, so share it only with your classmates.${crest}`;
+  } catch {
+    note.textContent = `Copy this link: ${url}${crest}`;
+  }
+}
+
+// Loaded on first use, like the PDF engine: most visits never need it.
+let qrLib = null;
+function loadQr() {
+  qrLib ||= new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "assets/qrcode.min.js";
+    s.onload = () => resolve(window.qrcode);
+    s.onerror = () => { qrLib = null; reject(new Error("Could not load the QR code engine")); };
+    document.head.appendChild(s);
+  });
+  return qrLib;
+}
+
+async function toggleShareQr() {
+  const btn = document.getElementById("btnQr");
+  const box = document.getElementById("shareQr");
+  const open = box.classList.contains("hidden");
+  btn.setAttribute("aria-expanded", String(open));
+  btn.textContent = open ? "Hide QR code" : "Show QR code";
+  box.classList.toggle("hidden", !open);
+  if (open) renderShareQr();
+}
+
+// Redrawn on every save while it is showing, so it never encodes a stale cover.
+async function renderShareQr() {
+  try {
+    const [qrcode, { url }] = await Promise.all([loadQr(), buildShareLink()]);
+    // Medium error correction: still reads through screen glare.
+    const qr = qrcode(0, "M");
+    qr.addData(url);
+    qr.make();
+    const box = document.getElementById("qrCode");
+    // margin is in the same units as cellSize: 16 is the four-module quiet
+    // zone scanners need around the code.
+    box.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 16, scalable: true, alt: "QR code for this cover" });
+    // Whole pixels per module: fractional ones render uneven and scan worse.
+    const modules = qr.getModuleCount() + 8;
+    box.firstElementChild.style.width = `${Math.max(2, Math.floor(260 / modules)) * modules}px`;
+  } catch (e) {
+    console.warn(e);
+    document.getElementById("qrCode").textContent = "The QR code could not be made. Use Copy a link instead.";
+  }
+}
+
+/* A link is input from anyone: only known fields, of the default's type, in
+   range, and for the fields that become class names, one of the offered
+   values. The crest is never read from a link. */
+function validShareValue(key, value) {
+  const fallback = DEFAULT_DATA[key];
+  if (typeof value !== typeof fallback) return false;
+  if (typeof value === "number") return Number.isFinite(value) && value >= 8 && value <= 200;
+  if (typeof value !== "string") return true;
+  const choices = {
+    format: FORMATS.map(f => f.id), paper: ["a4", "letter"], submissionMode: ["individual", "group"],
+    headerCase: elements.headerCaseSelect.items, font: elements.fontSelect.items,
+    topicSize: elements.topicSizeSelect.items, border: elements.borderSelect.items,
+    spacing: elements.spacingSelect.items,
+  }[key];
+  if (choices) return choices.some(c => (c.value ?? c) === value);
+  return value.length <= 2000;
+}
+
+let sharedFrom = null; // the save a shared link replaced, for Undo
+
+async function readShareLink() {
+  const match = location.hash.match(/^#s=([zj])([\w-]{1,8000})$/);
+  if (!match) return null;
+  history.replaceState(null, "", location.pathname + location.search);
+  try {
+    let bytes = fromBase64Url(match[2]);
+    if (match[1] === "z") bytes = await pipeBytes(bytes, new DecompressionStream("deflate-raw"), SHARE_LIMIT);
+    const p = JSON.parse(new TextDecoder().decode(bytes));
+    if (!p || typeof p !== "object" || Array.isArray(p)) throw new Error("Not a cover");
+
+    const id = UNIVERSITIES.some(u => u.id === p[0]) ? p[0] : DEFAULT_DATA.univ;
+    const data = id === OTHER ? null : await loadUniversity(id).catch(() => null);
+    const next = { ...JSON.parse(JSON.stringify(DEFAULT_DATA)), ...universityDefaults(data), univ: id, setupDone: true };
+    SHARE_FIELDS.forEach((k, i) => {
+      if (k !== "univ" && p[i] !== undefined && validShareValue(k, p[i])) next[k] = p[i];
+    });
+
+    let teacherMissing = false;
+    if (typeof p.t === "string") {
+      const t = directoryTeachers(data).find(x => shortHash(x.label) === p.t);
+      if (t) {
+        next.teacherName = t.label;
+        if (p[SHARE_FIELDS.indexOf("teacherDept")] === undefined) next.teacherDept = t.dept;
+      } else teacherMissing = true;
+    }
+    if (Array.isArray(p.m) && p.m.length <= 60 && p.m.every(v => typeof v === "string" && v.length <= 200)) {
+      const members = [];
+      for (let j = 0; j < p.m.length; j += 2) members.push({ name: p.m[j], id: p.m[j + 1] || "" });
+      if (members.length) next.members = members;
+    }
+
+    try { sharedFrom = localStorage.getItem(STORAGE_KEY); } catch {}
+    state = next;
+    saveState();
+    return { teacherMissing, crestMissing: p.c === 1 };
+  } catch (e) {
+    console.warn("Could not read the shared cover:", e);
+    return { broken: true };
+  }
+}
+
+function showShareNotice({ broken, teacherMissing, crestMissing }) {
+  const box = document.getElementById("shareNotice");
+  const parts = broken
+    ? ["This share link is damaged or incomplete, so your own cover is unchanged. Ask for the link again."]
+    : ["You opened a cover shared with you. Change the names and IDs to yours before printing."];
+  if (teacherMissing) parts.push("The teacher is no longer in the directory; pick them again under Submitted to.");
+  if (crestMissing) parts.push("The sender used their own crest; upload it under University.");
+  document.getElementById("shareNoticeText").textContent = parts.join(" ");
+  document.getElementById("shareUndo").hidden = !!broken;
+  box.classList.remove("hidden");
+}
+
+function undoShare() {
+  try {
+    if (sharedFrom) localStorage.setItem(STORAGE_KEY, sharedFrom);
+    else localStorage.removeItem(STORAGE_KEY);
+  } catch {}
+  location.reload();
+}
+
+// Pasting a share link into an open tab changes only the fragment.
+addEventListener("hashchange", () => { if (location.hash.startsWith("#s=")) location.reload(); });
 
 /* Cover page + the student's own assignment PDF, as one file.
  *
@@ -702,7 +1223,7 @@ function setupMerge() {
 
 async function mergeWithAssignment(file) {
   const bytes = await file.arrayBuffer();
-  const { bytes: merged } = await window.BUPCoverPDF.merge(state, bytes);
+  const { bytes: merged } = await window.BUPCoverPDF.merge(state, bytes, coverValues());
 
   const base = (state.topic || "assignment").trim().replace(/[^\w\s-]/g, "").slice(0, 60)
     || "assignment";

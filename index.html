@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BUP Assignment Cover Page Generator</title>
+  <title>Assignment Cover Page Generator</title>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
   <link rel="apple-touch-icon" href="assets/favicon-180.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,16 +32,44 @@
         </a>
       </header>
 
+      <div class="share-notice hidden" id="shareNotice" role="status">
+        <p id="shareNoticeText"></p>
+        <button type="button" class="btn-quiet" id="shareUndo">Undo, keep my own cover</button>
+      </div>
+
+      <section class="setup hidden" id="setup" aria-labelledby="setupTitle">
+        <h2 id="setupTitle">Set up your cover</h2>
+        <p>Pick your university and the format your teacher asked for. The preview changes as you choose, so you can compare. You can change both, and everything else, later.</p>
+        <interior-dropdown id="setupUniv" block label="University" value="bup"></interior-dropdown>
+        <div class="field-group">
+          <span class="caption" id="setupFormatLabel">Format</span>
+          <div class="format-picker" id="setupFormats" role="radiogroup" aria-labelledby="setupFormatLabel"></div>
+        </div>
+        <button type="button" class="btn-start" id="setupDone">Start filling in</button>
+      </section>
+
       <form id="coverForm" autocomplete="off">
         <interior-accordion multiple>
 
           <!-- 1. University & Department -->
-          <interior-panel step="1" heading="University &amp; department" open>
+          <interior-panel step="1" heading="University &amp; format" open>
             <div class="stack">
+              <div class="row">
+                <interior-dropdown id="univSelect" block label="University" value="bup"></interior-dropdown>
+                <interior-dropdown id="formatSelect" block label="Format" value="bd"></interior-dropdown>
+              </div>
+              <div class="field-group" data-for="mla">
+                <interior-check id="mlaTitlePage" label="Add a title page (only if your instructor asks)"></interior-check>
+                <button type="button" id="btnCopyHeading" class="btn-quiet">Copy MLA heading for your document</button>
+              </div>
+              <div data-for="bd uk">
+                <input type="file" id="crestFile" accept="image/*" hidden>
+                <button type="button" id="btnCrest" class="btn-quiet">Upload your own crest</button>
+              </div>
               <interior-field id="univNameInput" label="University headline"
                 value="BANGLADESH UNIVERSITY OF PROFESSIONALS"></interior-field>
 
-              <div class="row">
+              <div class="row" data-for="bd">
                 <interior-dropdown id="headerCaseSelect" block label="Headline case" value="header-caps"
                   items='[{"value":"header-caps","label":"ALL CAPS"},{"value":"header-title","label":"Title Case"}]'></interior-dropdown>
                 <div class="field-group">
@@ -51,37 +79,38 @@
                 </div>
               </div>
 
-              <div class="field-group">
+              <div class="field-group" data-for="bd">
                 <interior-field id="univTaglineInput" label="Tagline / motto"
                   value="Excellence Through Knowledge"></interior-field>
                 <interior-check id="showTagline" label="Show tagline on cover" checked></interior-check>
               </div>
 
-              <div class="field-group">
+              <div class="field-group" data-for="bd">
                 <interior-field id="univAddressInput" label="Campus address"
                   value="Mirpur Cantonment, Dhaka-1216, Bangladesh"></interior-field>
                 <interior-check id="showAddress" label="Show address on cover" checked></interior-check>
               </div>
 
-              <div class="row">
-                <interior-dropdown id="facultyPreset" block label="Faculty" value="FBS"
-                  items='[{"value":"FBS","label":"FBS","full":"Faculty of Business Studies"},{"value":"FASS","label":"FASS","full":"Faculty of Arts &amp; Social Sciences"},{"value":"FST","label":"FST","full":"Faculty of Science &amp; Technology"},{"value":"FSSS","label":"FSSS","full":"Faculty of Security &amp; Strategic Studies"}]'></interior-dropdown>
-                <interior-dropdown id="deptPreset" block label="Department"></interior-dropdown>
-              </div>
+              <interior-dropdown id="deptPreset" block label="Your department"></interior-dropdown>
+              <interior-field id="studentDept" label="Department, as printed" hidden></interior-field>
             </div>
           </interior-panel>
 
           <!-- 2. Assignment -->
           <interior-panel step="2" heading="Assignment details" open>
             <div class="stack">
-              <interior-field id="assignmentPrefix" label="Header label" value="Assignment on"
+              <interior-field id="assignmentPrefix" data-for="bd" label="Header label" value="Assignment on"
                 hint="Printed above the title"></interior-field>
               <interior-field id="assignmentTopic" label="Assignment title" multiline rows="2"
                 value="Key Concepts of Auditing"></interior-field>
+              <interior-field id="subtitle" data-for="apa mla chicago" label="Subtitle (optional)"
+                hint="Printed after the title, following a colon"></interior-field>
               <div class="row">
                 <interior-field id="courseTitle" label="Course title" value="Taxation and Auditing"></interior-field>
                 <interior-field id="courseCode" label="Course code" value="MKT-3104"></interior-field>
               </div>
+              <interior-field id="wordCount" data-for="uk" label="Word count"></interior-field>
+              <interior-field id="declaration" data-for="uk" label="Declaration" multiline rows="4"></interior-field>
             </div>
           </interior-panel>
 
@@ -89,13 +118,13 @@
           <interior-panel step="3" heading="Submitted to" open>
             <div class="stack">
               <interior-combobox id="teacherSearch" limit="8"
-                label="Search the BUP faculty directory"
-                placeholder="Search 387 BUP teachers by name or department"></interior-combobox>
+                label="Search the faculty directory"
+                placeholder="Search teachers by name or department"></interior-combobox>
               <p class="field-note">Pick a name to fill the three fields below, or type them yourself.</p>
 
               <interior-field id="teacherName" label="Teacher name" value="Asst. Prof. Anamika Dey"></interior-field>
-              <interior-field id="teacherDept" label="Teacher department" value="Department of Marketing"></interior-field>
-              <interior-field id="teacherAffiliation" label="Institution"
+              <interior-field id="teacherDept" data-for="bd" label="Teacher department" value="Department of Marketing"></interior-field>
+              <interior-field id="teacherAffiliation" data-for="bd" label="Institution"
                 value="Bangladesh University of Professionals"></interior-field>
             </div>
           </interior-panel>
@@ -121,31 +150,33 @@
                 </button>
               </div>
 
-              <div class="row">
+              <div class="row" data-for="bd">
                 <interior-field id="studentSection" label="Section" value="A"></interior-field>
                 <interior-field id="studentSession" label="Session" value="2022-2023"></interior-field>
               </div>
-              <div class="row">
-                <interior-field id="studentDept" label="Student department" value="Department of Marketing"></interior-field>
-                <interior-field id="studentIntake" label="Intake / batch (optional)"></interior-field>
-              </div>
+              <interior-field id="studentIntake" data-for="bd" label="Intake / batch (optional)"></interior-field>
 
               <div class="row row-date">
                 <label class="native-field">
                   <span class="caption">Date of submission</span>
                   <input type="date" id="submissionDate">
                 </label>
-                <interior-check id="showDate" label="Show date on cover"></interior-check>
+                <interior-check id="showDate" data-for="bd" label="Show date on cover"></interior-check>
               </div>
             </div>
           </interior-panel>
 
           <!-- 5. Typography & Layout -->
-          <interior-panel step="5" heading="Typography &amp; layout">
+          <interior-panel step="5" heading="Paper &amp; typography">
             <div class="stack">
+              <div class="field-group">
+                <span class="caption">Paper size</span>
+                <interior-segmented id="paperSelect" label="Paper size" value="a4"
+                  options='[{"value":"a4","label":"A4"},{"value":"letter","label":"US Letter"}]'></interior-segmented>
+              </div>
               <interior-dropdown id="fontSelect" block label="Document font" value="font-times"
                 items='[{"value":"font-times","label":"Times New Roman","full":"Times New Roman (standard classic)"},{"value":"font-garamond","label":"EB Garamond","full":"EB Garamond (academic serif)"},{"value":"font-baskerville","label":"Libre Baskerville","full":"Libre Baskerville (scholarly book serif)"},{"value":"font-georgia","label":"Georgia","full":"Georgia (wide formal serif)"},{"value":"font-arial","label":"Arial","full":"Arial (clean sans-serif)"}]'></interior-dropdown>
-              <div class="row">
+              <div class="row" data-for="bd">
                 <interior-dropdown id="topicSizeSelect" block label="Title size" value="topic-lg"
                   items='[{"value":"topic-md","label":"18pt","full":"Medium (18pt)"},{"value":"topic-lg","label":"20pt","full":"Large (20pt)"},{"value":"topic-xl","label":"24pt","full":"Extra large (24pt)"}]'></interior-dropdown>
                 <div class="field-group">
@@ -154,7 +185,7 @@
                     min="56" max="180" step="4" value="112" suffix="px"></interior-stepper>
                 </div>
               </div>
-              <div class="row">
+              <div class="row" data-for="bd">
                 <interior-dropdown id="spacingSelect" block label="Vertical spacing" value="spacing-balanced"
                   items='[{"value":"spacing-compact","label":"Compact","full":"Compact, for 3+ students"},{"value":"spacing-balanced","label":"Balanced","full":"Balanced (standard)"},{"value":"spacing-spacious","label":"Spacious","full":"Spacious"}]'></interior-dropdown>
                 <interior-dropdown id="borderSelect" block label="Page border" value="border-none"
@@ -164,6 +195,18 @@
           </interior-panel>
 
         </interior-accordion>
+
+        <div class="field-group">
+          <div class="row">
+            <button type="button" class="btn-quiet" id="btnShare">Copy a link to this cover</button>
+            <button type="button" class="btn-quiet" id="btnQr" aria-expanded="false" aria-controls="shareQr">Show QR code</button>
+          </div>
+          <p class="field-note" id="shareNote">Classmates who open it get this cover, ready to change the names and IDs.</p>
+          <figure class="share-qr hidden" id="shareQr">
+            <div class="qr-code" id="qrCode"></div>
+            <figcaption>Scan with a phone camera to open this cover. It carries every name and ID on it.</figcaption>
+          </figure>
+        </div>
 
         <div class="form-actions-bottom">
           <interior-hold-confirm id="btnReset"
@@ -178,7 +221,7 @@
     <main class="preview-area">
       <div class="preview-toolbar">
         <div class="preview-info">
-          <span class="badge">Live A4</span>
+          <span class="badge" id="paperBadge">Live A4</span>
           <span class="save-status" id="saveStatus" role="status" aria-live="polite">Saved</span>
         </div>
         <div class="preview-actions">
@@ -197,7 +240,7 @@
         <!-- Exact A4 Paper Model (210mm x 297mm). Deliberately NOT themed by the
              interior.dev tokens: this is the printed document, not app chrome. -->
         <div class="a4-sheet font-times header-caps header-size-lg topic-lg border-none spacing-balanced" id="a4Sheet">
-          <div class="sheet-inner">
+          <div class="sheet-inner" data-format="bd">
 
             <div class="masthead-group">
               <div class="univ-header-block">
@@ -208,7 +251,7 @@
             </div>
 
             <div class="univ-logo-block">
-              <img src="assets/bup_logo.svg" alt="Bangladesh University of Professionals Crest" class="univ-logo logo-md" id="pLogo">
+              <img alt="University crest" class="univ-logo logo-md" id="pLogo">
             </div>
 
             <div class="assignment-block">
@@ -244,6 +287,62 @@
             </div>
 
           </div>
+
+          <div class="sheet-inner intl intl-apa hidden" data-format="apa">
+            <span class="run-head">1</span>
+            <p class="apa-title" data-f="fullTitle"></p>
+            <p class="apa-gap"></p>
+            <p data-f="authorsInline"></p>
+            <p data-f="affiliation"></p>
+            <p data-f="courseLine"></p>
+            <p data-f="teacherName"></p>
+            <p data-f="dateLong"></p>
+          </div>
+
+          <div class="sheet-inner intl intl-mla hidden" data-format="mla">
+            <span class="run-head" data-f="mlaRunHead"></span>
+            <p class="pre" data-f="authorsLines"></p>
+            <p data-f="teacherName"></p>
+            <p data-f="courseLine"></p>
+            <p data-f="dateDMY"></p>
+            <p class="mla-title" data-f="fullTitle"></p>
+            <p class="screen-only mla-note">Your essay starts here, on this same page. MLA has no cover page: copy this heading into your document, or add a title page if your instructor asks for one.</p>
+          </div>
+
+          <div class="sheet-inner intl intl-mlatp hidden" data-format="mlatp">
+            <p class="tp-top" data-f="univTitle"></p>
+            <p class="tp-title" data-f="fullTitle"></p>
+            <div class="tp-lower">
+              <p class="pre" data-f="authorsLines"></p>
+              <p data-f="teacherName"></p>
+              <p data-f="courseLine"></p>
+              <p data-f="dateDMY"></p>
+            </div>
+          </div>
+
+          <div class="sheet-inner intl intl-chicago hidden" data-format="chicago">
+            <p class="tp-title cm-title"><span data-f="topicColon"></span><span class="cm-sub" data-f="subtitle"></span></p>
+            <div class="tp-lower">
+              <p class="pre" data-f="authorsLines"></p>
+              <p data-f="courseLine"></p>
+              <p data-f="teacherName"></p>
+              <p data-f="dateLong"></p>
+            </div>
+          </div>
+
+          <div class="sheet-inner intl intl-uk hidden" data-format="uk">
+            <div class="uk-head">
+              <img alt="" class="uk-crest" id="pUkCrest">
+              <div><p class="uk-univ" data-f="univTitle"></p><p class="uk-faculty" data-f="faculty"></p></div>
+            </div>
+            <h2 class="uk-heading">Assignment Cover Sheet</h2>
+            <table class="uk-table"><tbody id="pUkRows"></tbody></table>
+            <div class="uk-decl">
+              <p class="uk-decl-title">Declaration of originality</p>
+              <p data-f="declaration"></p>
+              <div class="uk-sign"><span>Student signature</span><span>Date</span></div>
+            </div>
+          </div>
         </div>
       </div>
     </main>
@@ -259,7 +358,6 @@
   <script src="components/interior/combobox.js"></script>
   <script src="components/interior/stepper.js"></script>
   <script src="assets/cover-pdf.js"></script>
-  <script src="assets/faculty_data.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
