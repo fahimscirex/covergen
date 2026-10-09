@@ -20,7 +20,10 @@ body {
   justify-content: space-between;
   gap: 12px;
   height: 60px;
-  padding: 0 20px;
+  /* Lines the bar's contents up with the 720px article column while the bar
+     itself stays full bleed. Below 720px the max() falls back to the same
+     20px gutter main uses. */
+  padding: 0 max(20px, calc((100% - 720px) / 2 + 20px));
   background: var(--bar-bg);
   border-bottom: 1px solid var(--hairline);
 }
@@ -125,4 +128,5 @@ td:first-child { color: var(--ink); font-weight: 500; white-space: nowrap; }
   main { padding: 28px 16px 40px; }
   h1 { font-size: 25px; }
   .bar { padding: 0 16px; }
+  .bar .home { font-size: 26px; }
 }

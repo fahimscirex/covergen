@@ -269,7 +269,7 @@ function loadSavedState() {
 let saveStatusTimer = null;
 
 function saveState() {
-  if (!document.getElementById("shareQr").classList.contains("hidden")) renderShareQr();
+  if (document.getElementById("shareDialog").open) refreshShareDialog();
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     showSaved();
@@ -580,8 +580,10 @@ function attachEventListeners() {
     saveState();
   });
   elements.btnCopyHeading.addEventListener("click", copyMlaHeading);
+  document.getElementById("btnShareOpen").addEventListener("click", openShareDialog);
+  document.getElementById("shareClose").addEventListener("click", () =>
+    document.getElementById("shareDialog").close());
   document.getElementById("btnShare").addEventListener("click", copyShareLink);
-  document.getElementById("btnQr").addEventListener("click", toggleShareQr);
   document.getElementById("shareUndo").addEventListener("click", undoShare);
 
   elements.btnCrest.addEventListener("click", () => {
@@ -1053,15 +1055,44 @@ async function buildShareLink() {
   return { url: `${location.origin}${location.pathname}#s=${packed}`, crestLeftOut };
 }
 
+function openShareDialog() {
+  const dialog = document.getElementById("shareDialog");
+  document.getElementById("shareNote").textContent = "";
+  dialog.showModal();
+  refreshShareDialog();
+}
+
+/* Both halves of the dialog describe the same cover, so they are filled from
+   one build and refreshed together whenever the cover changes underneath. */
+async function refreshShareDialog() {
+  const field = document.getElementById("shareUrl");
+  try {
+    const { url, crestLeftOut } = await buildShareLink();
+    field.value = url;
+    if (crestLeftOut) {
+      document.getElementById("shareNote").textContent =
+        "Your uploaded crest is not in the link, so whoever opens it has to upload it too.";
+    }
+  } catch (e) {
+    console.warn("Could not build the share link:", e);
+    field.value = "";
+    document.getElementById("shareNote").textContent = "Could not build a link for this cover.";
+  }
+  renderShareQr();
+}
+
 async function copyShareLink() {
   const note = document.getElementById("shareNote");
-  const { url, crestLeftOut } = await buildShareLink();
-  const crest = crestLeftOut ? " Your uploaded crest is not in the link, so your friend has to upload it too." : "";
+  const field = document.getElementById("shareUrl");
+  const url = field.value || (await buildShareLink()).url;
   try {
     await navigator.clipboard.writeText(url);
-    note.textContent = `Link copied. It carries every name and ID on this cover, so share it only with your classmates.${crest}`;
+    note.textContent = "Link copied.";
   } catch {
-    note.textContent = `Copy this link: ${url}${crest}`;
+    // No clipboard permission: select it so one keystroke copies it instead.
+    field.focus();
+    field.select();
+    note.textContent = "Press Ctrl+C to copy the selected link.";
   }
 }
 
@@ -1076,16 +1107,6 @@ function loadQr() {
     document.head.appendChild(s);
   });
   return qrLib;
-}
-
-async function toggleShareQr() {
-  const btn = document.getElementById("btnQr");
-  const box = document.getElementById("shareQr");
-  const open = box.classList.contains("hidden");
-  btn.setAttribute("aria-expanded", String(open));
-  btn.textContent = open ? "Hide QR code" : "Show QR code";
-  box.classList.toggle("hidden", !open);
-  if (open) renderShareQr();
 }
 
 // Redrawn on every save while it is showing, so it never encodes a stale cover.
@@ -1173,11 +1194,14 @@ async function readShareLink() {
 function showShareNotice({ broken, teacherMissing, crestMissing }) {
   const box = document.getElementById("shareNotice");
   const parts = broken
-    ? ["This share link is damaged or incomplete, so your own cover is unchanged. Ask for the link again."]
-    : ["You opened a cover shared with you. Change the names and IDs to yours before printing."];
+    ? ["Your own cover is unchanged. Ask your classmate for the link again."]
+    : ["Change the names and IDs to yours before printing."];
   if (teacherMissing) parts.push("The teacher is no longer in the directory; pick them again under Submitted to.");
   if (crestMissing) parts.push("The sender used their own crest; upload it under University.");
+  document.getElementById("shareNoticeTitle").textContent =
+    broken ? "That share link is damaged" : "You opened a shared cover";
   document.getElementById("shareNoticeText").textContent = parts.join(" ");
+  box.classList.toggle("is-broken", !!broken);
   document.getElementById("shareUndo").hidden = !!broken;
   box.classList.remove("hidden");
 }

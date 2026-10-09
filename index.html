@@ -51,8 +51,18 @@
       </header>
 
       <div class="share-notice hidden" id="shareNotice" role="status">
-        <p id="shareNoticeText"></p>
-        <button type="button" class="btn-quiet" id="shareUndo">Undo, keep my own cover</button>
+        <svg class="share-notice-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+             aria-hidden="true">
+          <circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle>
+          <circle cx="18" cy="19" r="3"></circle>
+          <path d="M8.6 13.5l6.8 4"></path><path d="M15.4 6.5l-6.8 4"></path>
+        </svg>
+        <div class="share-notice-body">
+          <strong id="shareNoticeTitle"></strong>
+          <p id="shareNoticeText"></p>
+        </div>
+        <button type="button" class="btn-quiet btn-sm" id="shareUndo">Keep my own cover</button>
       </div>
 
       <section class="setup hidden" id="setup" aria-labelledby="setupTitle">
@@ -215,18 +225,6 @@
 
         </interior-accordion>
 
-        <div class="field-group">
-          <div class="row row-tight">
-            <button type="button" class="btn-quiet" id="btnShare"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"></path><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"></path></svg>Copy link</button>
-            <button type="button" class="btn-quiet" id="btnQr" aria-expanded="false" aria-controls="shareQr"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><path d="M14 14h3v3h-3zM20 14h1M14 20h3M20 20h1"></path></svg>QR code</button>
-          </div>
-          <p class="field-note" id="shareNote">Classmates who open it get this cover, ready to change the names and IDs.</p>
-          <figure class="share-qr hidden" id="shareQr">
-            <div class="qr-code" id="qrCode"></div>
-            <figcaption>Scan with a phone camera to open this cover. It carries every name and ID on it.</figcaption>
-          </figure>
-        </div>
-
         <div class="form-actions-bottom">
           <interior-hold-confirm id="btnReset"
             label="Hold to reset sample" confirm-label="Reset"></interior-hold-confirm>
@@ -338,6 +336,7 @@
         <div class="preview-actions">
           <interior-stepper id="zoomStepper" label="Preview zoom"
             min="25" max="140" step="10" value="100" suffix="%"></interior-stepper>
+          <button type="button" class="btn-quiet" id="btnShareOpen"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><path d="M8.6 13.5l6.8 4"></path><path d="M15.4 6.5l-6.8 4"></path></svg>Share</button>
           <input type="file" id="assignmentFile" accept="application/pdf,.pdf" hidden>
           <interior-loading-button id="btnMerge"
             label="Merge assignment" pending-label="Merging" success-label="Saved"
@@ -458,6 +457,34 @@
       </div>
     </main>
   </div>
+
+  <dialog class="share-dialog" id="shareDialog" aria-labelledby="shareDialogTitle">
+    <div class="share-dialog-head">
+      <h2 id="shareDialogTitle">Share this cover</h2>
+      <button type="button" class="icon-btn" id="shareClose" aria-label="Close">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <path d="M18 6 6 18M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+
+    <p class="field-note">
+      Classmates who open this get your cover, ready to change the names and IDs
+      to theirs. It carries every name and ID currently on it, so share it only
+      with people you mean to.
+    </p>
+
+    <div class="qr-code" id="qrCode"></div>
+    <p class="share-scan">Scan with a phone camera</p>
+
+    <div class="share-link-row">
+      <input type="text" id="shareUrl" readonly aria-label="Link to this cover"
+             placeholder="Building the link...">
+      <button type="button" class="btn-quiet" id="btnShare">Copy</button>
+    </div>
+    <p class="field-note" id="shareNote"></p>
+  </dialog>
 
   <script src="components/interior/segmented-control.js"></script>
   <script src="components/interior/loading-button.js"></script>

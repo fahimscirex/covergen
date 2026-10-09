@@ -319,6 +319,15 @@ interior-accordion {
 /* Fills its slot, so a lone button lines up with the fields above and below
    instead of floating at its own width. */
 .btn-block { width: 100%; }
+
+/* For an action inside a notice, where a full-height control would outweigh
+   the text it belongs to. */
+.btn-sm {
+  height: 30px;
+  padding: 0 10px;
+  font-size: var(--text-sm);
+  border-radius: var(--r-sm);
+}
 .btn-quiet:active { transform: scale(0.98); }
 .btn-quiet:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
@@ -409,6 +418,7 @@ interior-accordion {
 .preview-info { display: flex; align-items: center; gap: 10px; min-width: 0; }
 
 .badge {
+  white-space: nowrap;
   background: var(--accent-soft);
   color: var(--accent);
   font-size: 10.5px;
@@ -781,25 +791,144 @@ interior-accordion {
 .uk-sign { display: grid; grid-template-columns: 1.6fr 1fr; gap: 6mm; margin-top: 12mm; }
 .uk-sign span { border-top: 1px solid #000; padding-top: 1.2mm; font-size: 9pt; }
 
+/* A notice, not a panel: an icon marks what happened, the accent rule down the
+   side separates it from the form, and the action sits under the text it
+   belongs to rather than floating at full width. */
 .share-notice {
   margin: 14px 14px 0;
   padding: 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  border-radius: var(--r-lg);
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 4px 10px;
+  border-radius: var(--r-md);
+  border-left: 3px solid var(--accent);
   background: var(--accent-soft);
   color: var(--ink);
-  line-height: 1.5;
 }
-.share-notice .btn-quiet { align-self: flex-start; }
+
+.share-notice-icon {
+  grid-column: 1;
+  margin-top: 1px;
+  color: var(--accent);
+}
+
+.share-notice-body { grid-column: 2; }
+
+.share-notice strong {
+  display: block;
+  font-size: var(--text);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+.share-notice p {
+  margin-top: 2px;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+.share-notice .btn-quiet {
+  grid-column: 2;
+  justify-self: start;
+  margin-top: 8px;
+  background: transparent;
+}
+.share-notice .btn-quiet:hover { background: var(--well); }
+
+/* Nothing was replaced, so there is nothing to undo and no accent to earn. */
+.share-notice.is-broken {
+  border-left-color: var(--flag);
+  background: color-mix(in srgb, var(--flag) 10%, transparent);
+}
+.share-notice.is-broken .share-notice-icon { color: var(--flag); }
 .field-note { overflow-wrap: anywhere; }
 
+/* Share dialog: the link and the QR are two ways to hand over the same cover,
+   so they belong in one place rather than as two buttons in the form. */
+.share-dialog {
+  /* The global * { margin: 0 } reset above kills the UA's margin:auto, which
+     is what centres a modal dialog, so it has to be put back here. */
+  margin: auto;
+  width: min(380px, calc(100vw - 32px));
+  padding: 18px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  background: var(--panel);
+  color: var(--ink);
+  box-shadow: var(--shadow-float);
+  font-family: var(--font-ui);
+  letter-spacing: var(--track);
+}
+.share-dialog::backdrop { background: rgba(10, 10, 9, 0.55); }
+
+.share-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.share-dialog h2 {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: var(--r-xs);
+  background: none;
+  color: var(--ink-3);
+  cursor: pointer;
+  outline: none;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+.icon-btn:hover { color: var(--ink); background: var(--sub); }
+.icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.share-scan {
+  margin-top: 8px;
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--ink-3);
+}
+
+.share-link-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+.share-link-row input {
+  flex: 1;
+  min-width: 0;
+  height: var(--control-h);
+  padding: 0 11px;
+  border: 1.5px solid var(--hairline);
+  border-radius: var(--r-md);
+  background: var(--sub);
+  color: var(--ink-2);
+  font: 400 var(--text-sm)/1 var(--font-mono);
+  outline: none;
+  text-overflow: ellipsis;
+}
+.share-link-row input:focus { border-color: var(--accent); color: var(--ink); }
+.share-link-row .btn-quiet { flex: none; height: var(--control-h); }
+
+#shareNote:empty { display: none; }
+#shareNote { margin-top: 8px; }
+
+/* The toolbar's own buttons are 36px; btn-quiet is a form control at 40px. */
+.preview-actions .btn-quiet { height: var(--control-h); }
+
 /* Always dark on white, whatever the theme: that is what cameras read. */
-.share-qr { display: grid; gap: 8px; justify-items: center; margin-top: 6px; }
-.qr-code { max-width: 100%; padding: 0; overflow: hidden; border-radius: var(--r-md); background: #fff; box-shadow: var(--shadow-lift); }
+.qr-code { max-width: 100%; margin: 14px auto 0; padding: 0; overflow: hidden; border-radius: var(--r-md); background: #fff; box-shadow: var(--shadow-lift); }
 .qr-code svg { display: block; max-width: 100%; height: auto; shape-rendering: crispEdges; }
-.share-qr figcaption { font-size: var(--text-sm); color: var(--ink-3); text-align: center; max-width: 34ch; }
 
 /* Setup step ------------------------------------------------------------- */
 .setup {
@@ -950,13 +1079,14 @@ interior-accordion {
   .preview-scroll { padding: 1.25rem 1rem 2rem; }
 }
 
+/* Four controls in the toolbar: the badge and save note yield before they
+   start wrapping. */
+@media (max-width: 900px) {
+  .preview-info { display: none; }
+}
+
 @media (max-width: 600px) {
   .app-header { padding: 0 12px; }
-
-  /* The badge and the save note give up their space to the three controls,
-     which wrap to a second row rather than overflowing on the narrowest
-     screens. */
-  .preview-info { display: none; }
 
   .preview-toolbar {
     height: auto;
@@ -973,9 +1103,9 @@ interior-accordion {
   }
 }
 
-/* Below this the three controls cannot share a row. Rather than leave Print
-   stranded at the left of a second row, give it the whole row. */
-@media (max-width: 400px) {
+/* Below this the toolbar's controls cannot share one row. Rather than leave
+   Print stranded at the left of a second row, give it the whole row. */
+@media (max-width: 600px) {
   .preview-actions #btnPrintFloating { flex: 1 0 100%; }
   .preview-actions #btnPrintFloating::part(button) { width: 100%; }
 }
