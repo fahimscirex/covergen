@@ -142,6 +142,7 @@ const elements = {
   courseTitle: document.getElementById("courseTitle"),
   courseCode: document.getElementById("courseCode"),
   teacherSearch: document.getElementById("teacherSearch"),
+  courseSearch: document.getElementById("courseSearch"),
   teacherName: document.getElementById("teacherName"),
   teacherDept: document.getElementById("teacherDept"),
   teacherAffiliation: document.getElementById("teacherAffiliation"),
@@ -290,6 +291,19 @@ function showSaved() {
   }, 1600);
 }
 
+/* Universities with a course list in data/courses/<id>.json, written by
+   scrapers/<id>_courses.py. Add the id here when a new list lands. The file
+   is fetched only once someone clicks into the course search. */
+const COURSE_LISTS = new Set(["bup"]);
+const courseFetches = {};
+
+function loadCourses(id) {
+  courseFetches[id] ||= fetch(`data/courses/${id}.json`)
+    .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+    .catch(e => { delete courseFetches[id]; throw e; });
+  return courseFetches[id];
+}
+
 function loadUniversity(id) {
   univFetches[id] ||= fetch(`data/${id}.json`)
     .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
@@ -312,6 +326,8 @@ async function showUniversity(id, fill) {
   if (fill && (univ || id === OTHER)) Object.assign(state, universityDefaults(univ));
   populateDepartmentDropdown();
   populateTeacherSearch();
+  elements.courseSearch.classList.toggle("hidden", !COURSE_LISTS.has(id));
+  elements.courseSearch.items = [];
   syncFormFromState();
   updatePreview();
   if (fill) saveState();
@@ -618,6 +634,19 @@ function attachEventListeners() {
         elements.teacherDept.value = state.teacherDept;
       }
     }
+    updatePreview();
+    saveState();
+  });
+
+  // Built on every focus, so the student's current department sorts first;
+  // after the first fetch the list comes from memory.
+  elements.courseSearch.addEventListener("focusin", populateCourseSearch);
+  elements.courseSearch.addEventListener("pick", (e) => {
+    const { code, title } = e.detail.item.data;
+    state.courseTitle = title;
+    state.courseCode = code;
+    elements.courseTitle.value = title;
+    elements.courseCode.value = code;
     updatePreview();
     saveState();
   });
@@ -1059,6 +1088,30 @@ function populateTeacherSearch() {
   box.$input.placeholder = univ?.teachers.length
     ? `Search ${univ.teachers.length} ${short} teachers by name or department`
     : "No teacher list for this university, type it below";
+}
+
+async function populateCourseSearch() {
+  const id = state.univ;
+  const box = elements.courseSearch;
+  if (!COURSE_LISTS.has(id)) return;
+  let data;
+  try { data = await loadCourses(id); }
+  catch (e) {
+    console.warn(`Could not load data/courses/${id}.json:`, e);
+    box.$input.placeholder = "Course list unavailable, type the course below";
+    return;
+  }
+  if (state.univ !== id) return;
+  const mine = data.departments.indexOf(state.studentDept);
+  const short = (d) => data.departments[d].replace(/^Department of /, "");
+  const items = data.courses.map(([code, title, depts]) => ({
+    value: code, label: title, mine: depts.includes(mine),
+    sub: [code, short(depts.includes(mine) ? mine : depts[0]) + (depts.length > 1 ? ` +${depts.length - 1}` : "")].join(" · "),
+    data: { code, title },
+  }));
+  // The search keeps list order, so the student's own department comes first.
+  box.items = items.filter(i => i.mine).concat(items.filter(i => !i.mine));
+  box.$input.placeholder = `Search ${items.length} courses by name or code`;
 }
 
 /* ---- Share link -------------------------------------------------------

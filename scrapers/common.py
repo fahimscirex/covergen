@@ -110,3 +110,46 @@ def write(uid, *, name, tagline, address, logo, source, faculties, teachers=None
     json.loads(path.read_text(encoding="utf-8"))  # self-check
     print(f"{path.relative_to(ROOT)}: {len(faculties)} faculties, {len(depts)} departments, "
           f"{len(rows)} teachers, {path.stat().st_size // 1024} KB")
+
+
+def course_code(code):
+    """"MKT1102(V1)", "GED1103_V2" or "mkt 1102" -> "MKT-1102" style."""
+    code = re.sub(r"\(.*?\)", "", clean(code)).upper()
+    code = re.sub(r"(?<=\d)[_\s]*V\d+$", "", code)  # revision tags: ALD2101V2, GED1103_V2
+    return re.sub(r"^([A-Z]+)[\s-]*(\d+[A-Z]?)$", r"\1-\2", code.replace(" ", ""))
+
+
+def write_courses(uid, *, source, courses):
+    """courses: iterable of (code, title, department) -> data/courses/<uid>.json
+
+      {"source", "updated", "departments": [...],
+       "courses": [["MKT-1102", "Principles of Marketing", [deptIdx, ...]]]}
+
+    A course several departments share (general education) is listed once.
+    Departments are checked against data/<uid>.json, so the app can match
+    them to the student's department; indices point into this file's own
+    list, so re-scraping the teachers can never misalign them.
+    """
+    known = [d for f in json.loads((ROOT / "data" / f"{uid}.json").read_text(encoding="utf-8"))["faculties"]
+             for d in f["departments"]]
+    by_code = {}
+    for code, name, dept in courses:
+        code, name, dept = course_code(code), clean(name), clean(dept)
+        if not code or not name:
+            continue
+        assert dept in known, f"{code}: department {dept!r} is not in data/{uid}.json"
+        entry = by_code.setdefault(code, [code, name, set()])
+        entry[2].add(dept)
+
+    assert by_code, "scraped no courses"
+    depts = [d for d in known if any(d in e[2] for e in by_code.values())]
+    rows = [[c, n, sorted(depts.index(d) for d in ds)] for c, n, ds in sorted(by_code.values())]
+    head = json.dumps({"source": source, "updated": date.today().isoformat(), "departments": depts},
+                      ensure_ascii=False, separators=(",", ":"))[:-1]
+    lines = ",\n".join(json.dumps(r, ensure_ascii=False, separators=(",", ":")) for r in rows)
+    path = ROOT / "data" / "courses" / f"{uid}.json"
+    path.parent.mkdir(exist_ok=True)
+    path.write_text(f'{head},"courses":[\n{lines}\n]}}\n', encoding="utf-8")
+    json.loads(path.read_text(encoding="utf-8"))  # self-check
+    print(f"{path.relative_to(ROOT)}: {len(rows)} courses across {len(depts)} departments, "
+          f"{path.stat().st_size // 1024} KB")

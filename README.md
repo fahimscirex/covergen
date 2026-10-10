@@ -68,6 +68,13 @@ Each file is written by `scrapers/<id>.py` from the university's own website:
 uv run scrapers/bup.py
 ```
 
+Course lists live apart in `data/courses/<id>.json`, written by
+`scrapers/<id>_courses.py` (BUP so far: 1,306 courses). The app fetches one
+only when someone clicks into the course search, and lists the student's own
+department first. Codes are written one way everywhere, `MKT-1102`, whatever
+the site's spelling. When a new list lands, add its id to `COURSE_LISTS` in
+`app.js`.
+
 `scrapers/common.py` validates every scrape (each teacher's department must be
 listed, no empty result) before writing. To add a university, write a scraper,
 put its crest in `data/logos/`, add it to `UNIVERSITIES` in `app.js` and to the
