@@ -155,7 +155,9 @@ def write_courses(uid, *, source, courses):
     by_code = {}
     for code, name, dept in courses:
         code, name, dept = course_code(code), course_title(name), clean(dept)
-        if not code or not name:
+        # A row with no real word in its title is a parsing leftover ("X X NN X").
+        if not code or not any(len(re.sub(r"[^\w\u0980-\u09ff]", "", w)) >= 3 and not w.isdigit()
+                               for w in name.split()):
             continue
         assert dept in known, f"{code}: department {dept!r} is not in data/{uid}.json"
         entry = by_code.setdefault(code, [code, name, set()])
