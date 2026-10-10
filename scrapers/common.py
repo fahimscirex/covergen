@@ -119,6 +119,26 @@ def course_code(code):
     return re.sub(r"^([A-Z]+)[\s-]*(\d+[A-Z]?)$", r"\1-\2", code.replace(" ", ""))
 
 
+MINOR = {"a", "an", "and", "as", "at", "by", "for", "in", "of", "on", "or", "the", "to", "with"}
+ROMAN = re.compile(r"^(?=[IVX]+$)X{0,3}(IX|IV|V?I{0,3})$")
+
+
+def course_title(title):
+    """A course title as a cover prints it, whatever state the site left it in."""
+    t = clean(title)
+    t = re.sub(r"^(?:[a-z]\)\s*)?[(.:,;\s]+", "", t)  # "a) (Computer Aided Design", ". Investigative"
+    t = re.sub(r"\s*\([^()]*\b(?:only|major|prerequisite|pre-requisite|credits?)\b[^()]*\)", "", t, flags=re.I)
+    t = re.sub(r"[\s.…,;:]+$", "", t)
+    if t.count("(") > t.count(")"):
+        t += ")"  # a note cut off mid-way: close it rather than lose it
+    if t.isupper() and len(t) > 3:
+        words = t.lower().split(" ")
+        t = " ".join(w.upper() if ROMAN.match(w.upper()) else
+                     w if i and w in MINOR else w[:1].upper() + w[1:]
+                     for i, w in enumerate(words))
+    return t
+
+
 def write_courses(uid, *, source, courses):
     """courses: iterable of (code, title, department) -> data/courses/<uid>.json
 
@@ -134,7 +154,7 @@ def write_courses(uid, *, source, courses):
              for d in f["departments"]]
     by_code = {}
     for code, name, dept in courses:
-        code, name, dept = course_code(code), clean(name), clean(dept)
+        code, name, dept = course_code(code), course_title(name), clean(dept)
         if not code or not name:
             continue
         assert dept in known, f"{code}: department {dept!r} is not in data/{uid}.json"
