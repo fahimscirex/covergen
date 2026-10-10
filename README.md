@@ -69,10 +69,14 @@ uv run scrapers/bup.py
 ```
 
 Course lists live apart in `data/courses/<id>.json`, written by
-`scrapers/<id>_courses.py` (BUP so far: 1,306 courses). The app fetches one
+`scrapers/<id>_courses.py`: about 26,000 courses for every listed university
+except BUTEX and SUST, which publish none in a readable form. Coverage follows
+what each site publishes, so some lists hold only a few departments (CUET,
+BRACU, CU, IUT). The app fetches one
 only when someone clicks into the course search, and lists the student's own
 department first. Codes are written one way everywhere, `MKT-1102`, whatever
-the site's spelling. When a new list lands, add its id to `COURSE_LISTS` in
+the site's spelling; numeric codes some universities use (`0413-111`) stay as
+printed. `common.write_courses` tidies titles and drops parsing leftovers. When a new list lands, add its id to `COURSE_LISTS` in
 `app.js`.
 
 `scrapers/common.py` validates every scrape (each teacher's department must be

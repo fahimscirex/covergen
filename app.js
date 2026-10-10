@@ -294,7 +294,9 @@ function showSaved() {
 /* Universities with a course list in data/courses/<id>.json, written by
    scrapers/<id>_courses.py. Add the id here when a new list lands. The file
    is fetched only once someone clicks into the course search. */
-const COURSE_LISTS = new Set(["bup"]);
+const COURSE_LISTS = new Set([
+  "aiub", "aust", "bau", "brac", "buet", "bup", "cu", "cuet", "diu", "du", "ewu", "iub", "iut", "jnu", "ju", "ku", "kuet", "nsu", "ru", "ruet", "uiu", "ulab",
+]);
 const courseFetches = {};
 
 function loadCourses(id) {

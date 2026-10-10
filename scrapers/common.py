@@ -113,10 +113,10 @@ def write(uid, *, name, tagline, address, logo, source, faculties, teachers=None
 
 
 def course_code(code):
-    """"MKT1102(V1)", "GED1103_V2" or "mkt 1102" -> "MKT-1102" style."""
+    """"MKT1102(V1)", "GED1103_V2", "Bot. 601" or "mkt 1102" -> "MKT-1102" style."""
     code = re.sub(r"\(.*?\)", "", clean(code)).upper()
     code = re.sub(r"(?<=\d)[_\s]*V\d+$", "", code)  # revision tags: ALD2101V2, GED1103_V2
-    return re.sub(r"^([A-Z]+)[\s-]*(\d+[A-Z]?)$", r"\1-\2", code.replace(" ", ""))
+    return re.sub(r"^([A-Z]+)[\s.-]*(\d+[A-Z]{0,2})$", r"\1-\2", code.replace(" ", ""))
 
 
 MINOR = {"a", "an", "and", "as", "at", "by", "for", "in", "of", "on", "or", "the", "to", "with"}
@@ -128,6 +128,7 @@ def course_title(title):
     t = clean(title)
     t = re.sub(r"^(?:[a-z]\)\s*)?[(.:,;\s]+", "", t)  # "a) (Computer Aided Design", ". Investigative"
     t = re.sub(r"\s*\([^()]*\b(?:only|major|prerequisite|pre-requisite|credits?)\b[^()]*\)", "", t, flags=re.I)
+    t = re.sub(r"(?:\s+\d+(?:\.\d+)?){2,}$", "", t)  # credit columns: "Chemistry 3 3"
     t = re.sub(r"[\s.…,;:]+$", "", t)
     if t.count("(") > t.count(")"):
         t += ")"  # a note cut off mid-way: close it rather than lose it
@@ -155,6 +156,11 @@ def write_courses(uid, *, source, courses):
     by_code = {}
     for code, name, dept in courses:
         code, name, dept = course_code(code), course_title(name), clean(dept)
+        # Elective slots ("SE-41XX") are not courses; a roman numeral is part of a
+        # title misread as a code ("II-12" from "Biochemistry-II 12").
+        # "Course 501" or "Paper 3" is a page's numbering, not a code.
+        if "XX" in code or ROMAN.match(code.split("-")[0]) or code.split("-")[0] in ("COURSE", "PAPER"):
+            continue
         # A row with no real word in its title is a parsing leftover ("X X NN X").
         if not code or not any(len(re.sub(r"[^\w\u0980-\u09ff]", "", w)) >= 3 and not w.isdigit()
                                for w in name.split()):
