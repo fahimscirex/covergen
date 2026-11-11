@@ -77,9 +77,20 @@ window.BUPCoverPDF = (() => {
     return lines;
   }
 
+  // CSS `text-wrap: balance`: the narrowest width that keeps the same number of lines.
+  function balance(text, font, size, maxWidth, track = 0) {
+    const n = wrap(text, font, size, maxWidth, track).length;
+    let lo = 0, hi = maxWidth;
+    for (let i = 0; i < 16; i++) {
+      const mid = (lo + hi) / 2;
+      if (wrap(text, font, size, mid, track).length === n) hi = mid; else lo = mid;
+    }
+    return wrap(text, font, size, hi, track);
+  }
+
   /* A block is measured before anything is drawn, so the four of them can be
      distributed down the page the way flex space-evenly does on screen. */
-  function textBlock(lines, font, size, leading, gapAfter = 0, track = 0) {
+  function textBlock(lines, font, size, leading, gapAfter = 0, track = 0, color) {
     return {
       height: lines.length * size * leading + gapAfter,
       draw(page, ctx, y) {
@@ -88,7 +99,7 @@ window.BUPCoverPDF = (() => {
           drawTracked(page, line, {
             x: ctx.centerX - w / 2,
             y: y - size * leading + (size * leading - size) / 2 + size * 0.06,
-            size, font, color: ctx.ink, track,
+            size, font, color: color || ctx.ink, track,
           });
           y -= size * leading;
         }
@@ -142,33 +153,34 @@ window.BUPCoverPDF = (() => {
     gap: { "spacing-compact": 0, "spacing-balanced": 4, "spacing-spacious": 10 },
   };
 
-  async function buildCover(pdf, state, S, fontFor, PAGE) {
+  async function buildCover(pdf, state, S, fontFor, PAGE, values) {
     const page = pdf.addPage([PAGE.w, PAGE.h]);
     const contentW = PAGE.w - PAD.side * 2;
-    const ctx = { centerX: PAGE.w / 2, ink: fontFor.black };
+    const ctx = { centerX: PAGE.w / 2, ink: fontFor.ink };
+    const muted = fontFor.muted;
     const f = fontFor.faces;
 
     const headSize = state.headerPt || 21;
     const headline = state.headerCase === "header-title"
-      ? (state.univName || "")
+      ? values.univTitle
       : (state.univName || "").toUpperCase();
 
     const headTrack = state.headerCase === "header-title" ? 0.02 : 0.04;
     const mastParts = [
-      textBlock(wrap(headline, f.bold, headSize, contentW, headTrack),
-        f.bold, headSize, 1.25, 0, headTrack),
+      textBlock(balance(headline, f.bold, headSize, contentW, headTrack),
+        f.bold, headSize, 1.25, 0, headTrack, fontFor.black),
     ];
     if (state.showTagline && (state.univTagline || "").trim()) {
       mastParts.push(spacer(2 * MM));
       mastParts.push(textBlock(
         wrap(state.univTagline.trim(), f.italic, 11, contentW, 0.06),
-        f.italic, 11, 1.3, 0, 0.06));
+        f.italic, 11, 1.3, 0, 0.06, muted));
     }
     if (state.showAddress && (state.univAddress || "").trim()) {
       mastParts.push(spacer(1.5 * MM));
       mastParts.push(textBlock(
         wrap(state.univAddress.trim().toUpperCase(), f.bold, 9, contentW, 0.08),
-        f.bold, 9, 1.3, 0, 0.08));
+        f.bold, 9, 1.3, 0, 0.08, muted));
     }
 
     const logoH = (state.logoPx || 112) * PX;
@@ -190,8 +202,8 @@ window.BUPCoverPDF = (() => {
       .filter(Boolean).join(" ").trim();
     const assignment = stack([
       textBlock(wrap(state.prefix || "", f.regular, 13.5, contentW, 0.06),
-        f.regular, 13.5, 1.3, 2.5 * MM, 0.06),
-      textBlock(wrap(state.topic || "Untitled Topic", f.boldItalic, topicSize, contentW * 0.9),
+        f.regular, 13.5, 1.3, 2.5 * MM, 0.06, muted),
+      textBlock(balance(state.topic || "Untitled Topic", f.boldItalic, topicSize, contentW * 0.9),
         f.boldItalic, topicSize, 1.32, 3 * MM),
       textBlock(wrap(course, f.bold, 15.5, contentW, 0.015), f.bold, 15.5, 1.3, 0, 0.015),
     ]);
@@ -199,48 +211,75 @@ window.BUPCoverPDF = (() => {
     const to = stack([
       textBlock(["Submitted To:"], f.bold, 13, 1.3, 2 * MM, 0.05),
       textBlock(wrap(state.teacherName || "", f.bold, 13.5, contentW), f.bold, 13.5, 1.45),
-      textBlock(wrap(state.teacherDept || "", f.regular, 12, contentW), f.regular, 12, 1.45),
-      textBlock(wrap(state.teacherAffiliation || "", f.regular, 12, contentW), f.regular, 12, 1.45),
+      textBlock(wrap(state.teacherDept || "", f.regular, 12, contentW), f.regular, 12, 1.45, 0, 0, muted),
+      textBlock(wrap(state.teacherAffiliation || "", f.regular, 12, contentW), f.regular, 12, 1.45, 0, 0, muted),
     ]);
 
     const members = (state.submissionMode === "group" ? state.members : state.members.slice(0, 1))
       .filter(m => (m.name || "").trim() || (m.id || "").trim());
     const rows = members.length ? members : [{ name: "", id: "" }];
-    const tableW = contentW * 0.86;
-    const nameW = tableW * 0.58;
-    const rowH = 12 * 1.2 + 7 * PX * 2;
+    // Mirrors the preview: headings for a group, a topics column once any is filled.
+    const group = state.submissionMode === "group";
+    const showWork = group && rows.some(m => (m.work || "").trim());
+    const tableW = showWork ? contentW : contentW * 0.86;
+    const padX = 16 * PX, padY = 7 * PX;
+    const tableRows = [];
+    if (group) tableRows.push({ fill: fontFor.grey, pad: 5 * PX, cells: ["Name", "Student ID", "Contributed Topics"]
+      .slice(0, showWork ? 3 : 2).map(t => [t, f.bold, 10.5]) });
+    rows.forEach(m => tableRows.push({ pad: padY, cells: [[m.name || "", f.bold, 12], [m.id || "", f.bold, 12],
+      [(m.work || "").trim(), f.regular, 11]].slice(0, showWork ? 3 : 2) }));
+    // Columns size to their content, the way the browser's auto table layout does:
+    // widest line per column, scaled to fit; if that overflows, longest word plus a share of the rest.
+    const cols = tableRows[0].cells.map((_, i) => tableRows.reduce(([lo, hi], r) => {
+      const [text, font, size] = r.cells[i];
+      const words = String(text).split(/\s+/).map(w => font.widthOfTextAtSize(w, size));
+      return [Math.max(lo, ...words), Math.max(hi, font.widthOfTextAtSize(String(text).trim(), size))];
+    }, [0, 0]).map(w => w + 2 * padX));
+    const sum = k => cols.reduce((n, c) => n + c[k], 0);
+    // Too wide for one line each: names and IDs stay whole and the last column wraps.
+    const last = cols[cols.length - 1];
+    const rest = tableW - (sum(1) - last[1]);
+    const colW = sum(1) <= tableW
+      ? cols.map(c => c[1] * tableW / sum(1))
+      : rest >= last[0]
+        ? cols.map(c => c === last ? rest : c[1])
+        : sum(0) >= tableW // unbreakable words wider than the table: shrink them to fit
+          ? cols.map(c => c[0] * tableW / sum(0))
+          : cols.map(c => c[0] + (c[1] - c[0]) * (tableW - sum(0)) / (sum(1) - sum(0)));
+    tableRows.forEach(r => {
+      r.cells = r.cells.map(([text, font, size], i) => ({ font, size,
+        lines: wrap(text, font, size, colW[i] - 2 * padX).concat(text ? [] : [""]) }));
+      r.h = Math.max(...r.cells.map(c => c.lines.length * c.size * 1.2)) + 2 * r.pad;
+    });
 
     const table = {
-      height: rows.length * rowH + 3.5 * MM,
+      height: tableRows.reduce((n, r) => n + r.h, 0) + 3.5 * MM,
       draw(pg, c, y) {
         const left = c.centerX - tableW / 2;
-        const top = y;
-        rows.forEach((m, i) => {
-          const ry = top - rowH * (i + 1);
-          pg.drawRectangle({
-            x: left, y: ry, width: tableW, height: rowH,
-            borderColor: fontFor.rule, borderWidth: 1.5 * PX,
-          });
-          pg.drawLine({
-            start: { x: left + nameW, y: ry },
-            end: { x: left + nameW, y: ry + rowH },
-            thickness: 1.5 * PX, color: fontFor.rule,
-          });
-          const baseline = ry + (rowH - 12) / 2 + 12 * 0.18;
-          pg.drawText(m.name || "", {
-            x: left + 16 * PX, y: baseline, size: 12, font: f.bold, color: fontFor.rule,
-          });
-          pg.drawText(m.id || "", {
-            x: left + nameW + 16 * PX, y: baseline, size: 12, font: f.bold, color: fontFor.rule,
+        tableRows.forEach(r => {
+          y -= r.h;
+          let x = left;
+          r.cells.forEach((cl, i) => {
+            pg.drawRectangle({
+              x, y, width: colW[i], height: r.h, color: r.fill,
+              borderColor: fontFor.rule, borderWidth: 1.5 * PX,
+            });
+            // Vertically centred, like the preview's `vertical-align: middle`.
+            let ly = y + r.h / 2 + (cl.lines.length * cl.size * 1.2) / 2;
+            cl.lines.forEach(line => {
+              ly -= cl.size * 1.2;
+              pg.drawText(line, { x: x + padX, y: ly + cl.size * 0.28, size: cl.size, font: cl.font, color: ctx.ink });
+            });
+            x += colW[i];
           });
         });
-        return top - rows.length * rowH - 3.5 * MM;
+        return y - 3.5 * MM;
       },
     };
 
     const meta = [];
     if ((state.section || "").trim()) meta.push(`Section: ${state.section.trim()}`);
-    if ((state.intake || "").trim()) meta.push(state.intake.trim());
+    if ((state.intake || "").trim()) meta.push(`Batch/Intake: ${state.intake.trim()}`);
     if ((state.session || "").trim()) meta.push(`Session: ${state.session.trim()}`);
     if ((state.studentDept || "").trim()) meta.push(state.studentDept.trim());
     const metaBlock = stack(meta.map(line =>
@@ -248,10 +287,8 @@ window.BUPCoverPDF = (() => {
 
     const byParts = [textBlock(["Submitted By:"], f.bold, 13, 1.3, 2 * MM, 0.05), table, metaBlock];
     if (state.showDate && state.submissionDate) {
-      const pretty = new Date(state.submissionDate).toLocaleDateString("en-GB",
-        { day: "numeric", month: "long", year: "numeric" });
       byParts.push(spacer(2 * MM));
-      byParts.push(textBlock([`Date of Submission: ${pretty}`], f.italic, 11, 1.4));
+      byParts.push(textBlock([`Date of Submission: ${values.dateLong}`], f.italic, 11, 1.4, 0, 0, muted));
     }
 
     // No crest (an unlisted university with none uploaded) drops the block.
@@ -436,12 +473,14 @@ window.BUPCoverPDF = (() => {
     const fontFor = {
       faces: faces(fonts, StandardFonts, state.font),
       black: rgb(0, 0, 0),
+      ink: rgb(0.043, 0.075, 0.161),   // #0b1329, the sheet's text colour
+      muted: rgb(0.216, 0.255, 0.318), // #374151, its secondary lines
       rule: rgb(0.12, 0.16, 0.22),
       grey: rgb(0.925, 0.925, 0.925),
       crest: state.logo && (template === "bd" || template === "uk") ? await crest(pdf, state.logo) : null,
     };
 
-    if (template === "bd") await buildCover(pdf, state, StandardFonts, fontFor, P);
+    if (template === "bd") await buildCover(pdf, state, StandardFonts, fontFor, P, values);
     else BUILDERS[template](pdf, P, fontFor, values);
 
     if (assignmentBytes) {

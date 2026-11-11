@@ -239,6 +239,8 @@ interior-accordion {
 }
 
 .members-list { display: flex; flex-direction: column; gap: 8px; }
+/* Group rows are two lines each, so members need more room between them than their own lines have */
+.members-list:has(.member-work-input) { gap: 16px; }
 
 .member-row {
   position: relative;
@@ -273,10 +275,13 @@ interior-accordion {
   box-shadow: none;
 }
 
+/* Group rows add a full-width contributions line under name and ID */
+.member-row .member-work-input { grid-column: 1 / -1; }
+
 .member-row .btn-remove-member {
   position: absolute;
   right: 6px;
-  top: 50%;
+  top: calc(var(--field-h) / 2);
   transform: translateY(-50%);
   display: grid;
   place-items: center;
@@ -580,7 +585,7 @@ interior-accordion {
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #4b5563;
+  color: #374151;
   margin: 1.5mm 0 0 0;
   line-height: 1.3;
 }
@@ -649,7 +654,6 @@ interior-accordion {
 }
 
 .submitted-to-block {
-  margin-bottom: 7mm;
   text-align: center;
 }
 
@@ -695,6 +699,7 @@ interior-accordion {
 .students-table td {
   border: 1.5px solid #1f2937;
   padding: 7px 16px;
+  line-height: 1.2; /* the PDF's leading, so wrapped cells match */
   vertical-align: middle;
 }
 
@@ -702,7 +707,6 @@ interior-accordion {
   text-align: left;
   font-weight: 600;
   color: #0b1329;
-  width: 58%;
 }
 
 .students-table .col-id {
@@ -710,13 +714,36 @@ interior-accordion {
   font-weight: 700;
   letter-spacing: 0.03em;
   color: #0b1329;
-  width: 42%;
+}
+
+.students-table th {
+  border: 1.5px solid #1f2937;
+  padding: 5px 16px;
+  line-height: 1.2;
+  background: #ececec;
+  font-size: 10.5pt;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: left;
+  color: #0b1329;
+}
+
+/* Column widths follow their content; with contributions the table takes the full
+   width, and names and IDs stay on one line while they fit (see updatePreview) */
+.students-table.has-work { width: 100%; }
+.students-table.has-work.keep-names :is(.col-name, .col-id) { white-space: nowrap; }
+
+.students-table .col-work {
+  text-align: left;
+  font-size: 11pt;
+  font-weight: 400;
+  color: #0b1329;
 }
 
 .student-meta {
   font-size: 12pt;
   line-height: 1.55;
-  color: #1f2937;
+  color: #0b1329;
   font-weight: 500;
 }
 
@@ -728,6 +755,7 @@ interior-accordion {
   margin-top: 2mm;
   font-size: 11pt;
   font-style: italic;
+  color: #374151;
 }
 
 /* ==========================================================================
