@@ -90,16 +90,20 @@ window.BUPCoverPDF = (() => {
 
   /* A block is measured before anything is drawn, so the four of them can be
      distributed down the page the way flex space-evenly does on screen. */
-  function textBlock(lines, font, size, leading, gapAfter = 0, track = 0, color) {
+  function textBlock(lines, font, size, leading, gapAfter = 0, track = 0, color, underline) {
     return {
       height: lines.length * size * leading + gapAfter,
       draw(page, ctx, y) {
         for (const line of lines) {
           const w = trackedWidth(line, font, size, track);
+          const base = y - size * leading + (size * leading - size) / 2 + size * 0.06;
           drawTracked(page, line, {
-            x: ctx.centerX - w / 2,
-            y: y - size * leading + (size * leading - size) / 2 + size * 0.06,
-            size, font, color: color || ctx.ink, track,
+            x: ctx.centerX - w / 2, y: base, size, font, color: color || ctx.ink, track,
+          });
+          if (underline) page.drawLine({
+            start: { x: ctx.centerX - w / 2, y: base - size * 0.12 },
+            end: { x: ctx.centerX + w / 2, y: base - size * 0.12 },
+            thickness: size * 0.06, color: color || ctx.ink,
           });
           y -= size * leading;
         }
@@ -159,6 +163,19 @@ window.BUPCoverPDF = (() => {
     const ctx = { centerX: PAGE.w / 2, ink: fontFor.ink };
     const muted = fontFor.muted;
     const f = fontFor.faces;
+    const styles = state.styles || {};
+    /* One line of the sheet, with any override from the inline editor (keyed
+       by the preview element's id) laid over the line's own defaults. */
+    const line = (id, text, size, leading, gapAfter, d = {}) => {
+      const s = styles[id] || {};
+      const b = s.b ?? !!d.b, i = s.i ?? !!d.i;
+      const fc = s.font ? faces(fontFor.fonts, S, s.font) : f;
+      const font = b && i ? fc.boldItalic : b ? fc.bold : i ? fc.italic : fc.regular;
+      const track = s.track ?? d.track ?? 0;
+      const width = contentW * (s.w ?? d.w ?? 100) / 100;
+      return textBlock((d.balance ? balance : wrap)(text, font, size, width, track),
+        font, size, leading, gapAfter, track, d.color, s.u);
+    };
 
     const headSize = state.headerPt || 21;
     const headline = state.headerCase === "header-title"
@@ -167,20 +184,15 @@ window.BUPCoverPDF = (() => {
 
     const headTrack = state.headerCase === "header-title" ? 0.02 : 0.04;
     const mastParts = [
-      textBlock(balance(headline, f.bold, headSize, contentW, headTrack),
-        f.bold, headSize, 1.25, 0, headTrack, fontFor.black),
+      line("pUnivName", headline, headSize, 1.25, 0, { b: 1, track: headTrack, balance: 1, color: fontFor.black }),
     ];
     if (state.showTagline && (state.univTagline || "").trim()) {
       mastParts.push(spacer(2 * MM));
-      mastParts.push(textBlock(
-        wrap(state.univTagline.trim(), f.italic, 11, contentW, 0.06),
-        f.italic, 11, 1.3, 0, 0.06, muted));
+      mastParts.push(line("pUnivTagline", state.univTagline.trim(), 11, 1.3, 0, { i: 1, track: 0.06, color: muted }));
     }
     if (state.showAddress && (state.univAddress || "").trim()) {
       mastParts.push(spacer(1.5 * MM));
-      mastParts.push(textBlock(
-        wrap(state.univAddress.trim().toUpperCase(), f.bold, 9, contentW, 0.08),
-        f.bold, 9, 1.3, 0, 0.08, muted));
+      mastParts.push(line("pUnivAddress", state.univAddress.trim().toUpperCase(), 9, 1.3, 0, { b: 1, track: 0.08, color: muted }));
     }
 
     const logoH = (state.logoPx || 112) * PX;
@@ -201,18 +213,16 @@ window.BUPCoverPDF = (() => {
     const course = [state.courseTitle, state.courseCode ? `(${state.courseCode})` : ""]
       .filter(Boolean).join(" ").trim();
     const assignment = stack([
-      textBlock(wrap(state.prefix || "", f.regular, 13.5, contentW, 0.06),
-        f.regular, 13.5, 1.3, 2.5 * MM, 0.06, muted),
-      textBlock(balance(state.topic || "Untitled Topic", f.boldItalic, topicSize, contentW * 0.9),
-        f.boldItalic, topicSize, 1.32, 3 * MM),
-      textBlock(wrap(course, f.bold, 15.5, contentW, 0.015), f.bold, 15.5, 1.3, 0, 0.015),
+      line("pPrefix", state.prefix || "", 13.5, 1.3, 2.5 * MM, { track: 0.06, color: muted }),
+      line("pTopic", state.topic || "Untitled Topic", topicSize, 1.32, 3 * MM, { b: 1, i: 1, w: 90, balance: 1 }),
+      line("pCourse", course, 15.5, 1.3, 0, { b: 1, track: 0.015 }),
     ]);
 
     const to = stack([
       textBlock(["Submitted To:"], f.bold, 13, 1.3, 2 * MM, 0.05),
-      textBlock(wrap(state.teacherName || "", f.bold, 13.5, contentW), f.bold, 13.5, 1.45),
-      textBlock(wrap(state.teacherDept || "", f.regular, 12, contentW), f.regular, 12, 1.45, 0, 0, muted),
-      textBlock(wrap(state.teacherAffiliation || "", f.regular, 12, contentW), f.regular, 12, 1.45, 0, 0, muted),
+      line("pTeacherName", state.teacherName || "", 13.5, 1.45, 0, { b: 1 }),
+      line("pTeacherDept", state.teacherDept || "", 12, 1.45, 0, { color: muted }),
+      line("pTeacherAffil", state.teacherAffiliation || "", 12, 1.45, 0, { color: muted }),
     ]);
 
     const members = (state.submissionMode === "group" ? state.members : state.members.slice(0, 1))
@@ -278,17 +288,17 @@ window.BUPCoverPDF = (() => {
     };
 
     const meta = [];
-    if ((state.section || "").trim()) meta.push(`Section: ${state.section.trim()}`);
-    if ((state.intake || "").trim()) meta.push(`Batch/Intake: ${state.intake.trim()}`);
-    if ((state.session || "").trim()) meta.push(`Session: ${state.session.trim()}`);
-    if ((state.studentDept || "").trim()) meta.push(state.studentDept.trim());
-    const metaBlock = stack(meta.map(line =>
-      textBlock([line], f.regular, 12, 1.55)));
+    if (group && (state.groupNo || "").trim()) meta.push(["pGroup", `Group: ${state.groupNo.trim()}`]);
+    if ((state.section || "").trim()) meta.push(["pSection", `Section: ${state.section.trim()}`]);
+    if ((state.intake || "").trim()) meta.push(["pBatchWrap", `Batch/Intake: ${state.intake.trim()}`]);
+    if ((state.session || "").trim()) meta.push(["pSession", `Session: ${state.session.trim()}`]);
+    if ((state.studentDept || "").trim()) meta.push(["pStudentDept", state.studentDept.trim()]);
+    const metaBlock = stack(meta.map(([id, text]) => line(id, text, 12, 1.55, 0)));
 
     const byParts = [textBlock(["Submitted By:"], f.bold, 13, 1.3, 2 * MM, 0.05), table, metaBlock];
     if (state.showDate && state.submissionDate) {
       byParts.push(spacer(2 * MM));
-      byParts.push(textBlock([`Date of Submission: ${values.dateLong}`], f.italic, 11, 1.4, 0, 0, muted));
+      byParts.push(line("pDateWrap", `Date of Submission: ${values.dateLong}`, 11, 1.4, 0, { i: 1, color: muted }));
     }
 
     // No crest (an unlisted university with none uploaded) drops the block.
@@ -472,6 +482,7 @@ window.BUPCoverPDF = (() => {
 
     const fontFor = {
       faces: faces(fonts, StandardFonts, state.font),
+      fonts,
       black: rgb(0, 0, 0),
       ink: rgb(0.043, 0.075, 0.161),   // #0b1329, the sheet's text colour
       muted: rgb(0.216, 0.255, 0.318), // #374151, its secondary lines

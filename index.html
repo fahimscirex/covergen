@@ -170,6 +170,8 @@
                   options='[{"value":"individual","label":"Individual"},{"value":"group","label":"Group"}]'></interior-segmented>
               </div>
 
+              <interior-field id="groupNo" label="Group number (optional)" hidden></interior-field>
+
               <div class="members-container" id="membersContainer">
                 <div class="member-column-labels" aria-hidden="true">
                   <span>Student name</span>
@@ -391,6 +393,7 @@
                 </tbody>
               </table>
               <div class="student-meta">
+                <p id="pGroup" class="hidden"></p>
                 <p id="pSection">Section: A</p>
                 <p id="pBatchWrap" class="hidden"><span id="pBatch"></span></p>
                 <p id="pSession">Session: 2022-2023</p>
@@ -489,7 +492,17 @@
     <p class="field-note" id="shareNote"></p>
   </dialog>
 
-  <script src="components/interior/segmented-control.js"></script>
+  <div class="inline-bar screen-only" id="inlineBar" role="toolbar" aria-label="Line style" hidden>
+  <button type="button" data-k="b" aria-pressed="false" title="Bold" aria-label="Bold"><b>B</b></button>
+  <button type="button" data-k="i" aria-pressed="false" title="Italic" aria-label="Italic"><i>I</i></button>
+  <button type="button" data-k="u" aria-pressed="false" title="Underline" aria-label="Underline"><u>U</u></button>
+  <interior-dropdown data-k="font" label="" value=""></interior-dropdown>
+  <label class="inline-bar-step" title="Letter spacing"><span>Spacing</span><interior-stepper data-k="track" step="1" value="0" suffix="%" label="Letter spacing"></interior-stepper></label>
+  <label class="inline-bar-step" title="Text width"><span>Width</span><interior-stepper data-k="w" step="5" value="100" suffix="%" label="Text width"></interior-stepper></label>
+  <button type="button" data-k="reset" title="Reset this line's style">Reset</button>
+</div>
+
+<script src="components/interior/segmented-control.js"></script>
   <script src="components/interior/loading-button.js"></script>
   <script src="components/interior/hold-to-confirm.js"></script>
   <script src="components/interior/field.js"></script>

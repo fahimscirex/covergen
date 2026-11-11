@@ -521,6 +521,7 @@ interior-accordion {
 /* Document Fonts */
 .a4-sheet {
   font-family: var(--font-times);
+  letter-spacing: 0; /* not the UI's tightened tracking: the PDF has none */
 }
 .a4-sheet.font-times { font-family: var(--font-times); }
 .a4-sheet.font-garamond { font-family: var(--font-garamond); }
@@ -1017,6 +1018,46 @@ interior-accordion {
 }
 .btn-start:hover { filter: brightness(1.06); }
 .btn-start:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Inline editor: clickable lines on the sheet and their floating toolbar */
+@media screen {
+  .a4-sheet [data-inline] { cursor: text; border-radius: 2px; outline: 1px dashed transparent; outline-offset: 2px; }
+  .a4-sheet [data-inline]:hover { outline-color: var(--accent-soft); }
+  .a4-sheet [data-inline].is-editing { outline: 1.5px solid var(--accent); }
+}
+
+.inline-bar {
+  position: fixed;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-md);
+  background: var(--panel);
+  box-shadow: var(--shadow-float);
+}
+.inline-bar[hidden] { display: none; }
+.inline-bar button {
+  display: grid;
+  place-items: center;
+  min-width: var(--control-h);
+  height: var(--control-h);
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: var(--well);
+  box-shadow: var(--shadow-cap);
+  color: var(--ink);
+  font: 500 var(--text)/1 var(--font-ui);
+  cursor: pointer;
+}
+.inline-bar button b, .inline-bar button i, .inline-bar button u { font-family: Georgia, serif; font-size: 15px; }
+.inline-bar button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
+.inline-bar button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.inline-bar interior-dropdown { width: 150px; }
+.inline-bar-step { display: flex; align-items: center; gap: 6px; font: 500 12px/1 var(--font-ui); color: var(--ink-2); }
 
 /* ==========================================================================
    Print Stylesheet (@media print)
