@@ -437,7 +437,14 @@ function renderMembersInputs() {
       <button type="button" class="btn-remove-member" title="Remove student" aria-label="Remove student" data-index="${index}" ${group && state.members.length > 1 ? "" : "hidden"}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </button>
+      ${group ? `<input type="text" class="member-work-input" name="member-work-${index}" aria-label="Contributed topics" placeholder="Contributed topics (optional)" value="${escapeHtml(member.work || "")}">` : ""}
     `;
+
+    row.querySelector(".member-work-input")?.addEventListener("input", (e) => {
+      state.members[index].work = e.target.value;
+      updatePreview();
+      saveState();
+    });
 
     const nameInput = row.querySelector(".member-name-input");
     const idInput = row.querySelector(".member-id-input");
@@ -470,11 +477,8 @@ function renderMembersInputs() {
 
 function updatePreview() {
   const rawUniv = state.univName || "";
-  if (state.headerCase === "header-caps") {
-    elements.pUnivName.textContent = rawUniv.toUpperCase();
-  } else {
-    elements.pUnivName.textContent = toNaturalTitleCase(rawUniv);
-  }
+  // Title case uses the university's own spelling, the same text the PDF prints.
+  elements.pUnivName.textContent = state.headerCase === "header-caps" ? rawUniv.toUpperCase() : coverValues().univTitle;
 
   if (state.showTagline && state.univTagline && state.univTagline.trim()) {
     elements.pUnivTagline.textContent = state.univTagline.trim();
@@ -490,7 +494,7 @@ function updatePreview() {
     elements.pUnivAddress.style.display = "none";
   }
 
-  elements.pPrefix.textContent = state.prefix || "Assignment on";
+  elements.pPrefix.textContent = state.prefix || "";
   elements.pTopic.textContent = state.topic || "Untitled Topic";
 
   const codePart = state.courseCode && state.courseCode.trim() ? ` (${state.courseCode.trim()})` : "";
@@ -500,20 +504,23 @@ function updatePreview() {
   elements.pTeacherDept.textContent = state.teacherDept || "";
   elements.pTeacherAffil.textContent = state.teacherAffiliation;
 
-  const tbody = elements.pStudentsTable.querySelector("tbody");
-  tbody.innerHTML = "";
-
   const filledMembers = activeMembers().filter(m => (m.name && m.name.trim()) || (m.id && m.id.trim()));
   const membersToDisplay = filledMembers.length > 0 ? filledMembers : [{ name: "", id: "" }];
-
-  membersToDisplay.forEach(member => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td class="col-name">${escapeHtml(member.name || "")}</td>
-      <td class="col-id">${escapeHtml(member.id || "")}</td>
-    `;
-    tbody.appendChild(tr);
-  });
+  // A group sheet gets column headings; the third column only once someone has a topic.
+  const group = state.submissionMode === "group";
+  const showWork = group && membersToDisplay.some(m => (m.work || "").trim());
+  elements.pStudentsTable.classList.toggle("has-work", showWork);
+  elements.pStudentsTable.innerHTML =
+    (group ? `<thead><tr><th>Name</th><th>Student ID</th>${showWork ? "<th>Contributed Topics</th>" : ""}</tr></thead>` : "") +
+    "<tbody>" + membersToDisplay.map(m => `<tr>
+      <td class="col-name">${escapeHtml(m.name || "")}</td>
+      <td class="col-id">${escapeHtml(m.id || "")}</td>
+      ${showWork ? `<td class="col-work">${escapeHtml((m.work || "").trim())}</td>` : ""}
+    </tr>`).join("") + "</tbody>";
+  // Names stay on one line unless that pushes the table past the page; then they wrap, as in the PDF.
+  elements.pStudentsTable.classList.add("keep-names");
+  if (elements.pStudentsTable.offsetWidth > elements.pStudentsTable.parentElement.clientWidth)
+    elements.pStudentsTable.classList.remove("keep-names");
 
   elements.pSection.textContent = state.section ? `Section: ${state.section}` : "";
 
@@ -1171,6 +1178,8 @@ async function buildShareLink() {
     p.t = shortHash(teacher.label);
   }
   p.m = state.members.flatMap(m => [m.name || "", m.id || ""]);
+  // Kept apart from p.m so links made before contributions still read.
+  if (state.members.some(m => m.work)) p.k = state.members.map(m => m.work || "");
   // An uploaded crest would outweigh everything else; only its absence travels.
   const crestLeftOut = state.logo !== base.logo;
   if (crestLeftOut) p.c = 1;
@@ -1304,7 +1313,8 @@ async function readShareLink() {
     }
     if (Array.isArray(p.m) && p.m.length <= 60 && p.m.every(v => typeof v === "string" && v.length <= 200)) {
       const members = [];
-      for (let j = 0; j < p.m.length; j += 2) members.push({ name: p.m[j], id: p.m[j + 1] || "" });
+      const work = Array.isArray(p.k) && p.k.length <= 30 && p.k.every(v => typeof v === "string" && v.length <= 200) ? p.k : [];
+      for (let j = 0; j < p.m.length; j += 2) members.push({ name: p.m[j], id: p.m[j + 1] || "", work: work[j / 2] || "" });
       if (members.length) next.members = members;
     }
 
