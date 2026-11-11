@@ -225,6 +225,7 @@
                 <interior-dropdown id="borderSelect" block label="Page border" value="border-none"
                   items='[{"value":"border-none","label":"None","full":"No border (standard format)"},{"value":"border-thin","label":"Thin","full":"Thin classic border"},{"value":"border-double","label":"Double","full":"Double academic border"}]'></interior-dropdown>
               </div>
+              <button type="button" id="btnResetSheet" class="btn-quiet" data-for="bd">Reset styling and labels edited on the sheet</button>
             </div>
           </interior-panel>
 
@@ -376,14 +377,14 @@
             </div>
 
             <div class="submitted-to-block">
-              <div class="section-title">Submitted To:</div>
+              <div class="section-title" id="pToTitle" data-label="to">Submitted To:</div>
               <p class="person-name" id="pTeacherName">Asst. Prof. Anamika Dey</p>
               <p class="person-dept" id="pTeacherDept">Department of Marketing</p>
               <p class="person-univ" id="pTeacherAffil">Bangladesh University of Professionals</p>
             </div>
 
             <div class="submitted-by-block">
-              <div class="section-title">Submitted By:</div>
+              <div class="section-title" id="pByTitle" data-label="by">Submitted By:</div>
               <table class="students-table" id="pStudentsTable">
                 <tbody>
                   <tr>
@@ -398,7 +399,7 @@
                 <p id="pBatchWrap" class="hidden"><span id="pBatch"></span></p>
                 <p id="pSession">Session: 2022-2023</p>
                 <p id="pStudentDept">Department of Marketing</p>
-                <p id="pDateWrap" class="hidden"><span id="pDateLabel">Date of Submission:</span> <span id="pDateValue"></span></p>
+                <p id="pDateWrap" class="hidden"><span id="pDateLabel" data-label="date">Date of Submission:</span> <span id="pDateValue"></span></p>
               </div>
             </div>
 
@@ -493,13 +494,19 @@
   </dialog>
 
   <div class="inline-bar screen-only" id="inlineBar" role="toolbar" aria-label="Line style" hidden>
-  <button type="button" data-k="b" aria-pressed="false" title="Bold" aria-label="Bold"><b>B</b></button>
-  <button type="button" data-k="i" aria-pressed="false" title="Italic" aria-label="Italic"><i>I</i></button>
-  <button type="button" data-k="u" aria-pressed="false" title="Underline" aria-label="Underline"><u>U</u></button>
+  <button type="button" data-k="b" aria-pressed="false" title="Bold (Ctrl+B)" aria-label="Bold"><b>B</b></button>
+  <button type="button" data-k="i" aria-pressed="false" title="Italic (Ctrl+I)" aria-label="Italic"><i>I</i></button>
+  <button type="button" data-k="u" aria-pressed="false" title="Underline (Ctrl+U)" aria-label="Underline"><u>U</u></button>
+  <button type="button" data-k="case" class="ib-case" title="Letter case: as typed, UPPERCASE or Title Case" aria-label="Letter case">abc</button>
+  <span class="ib-sep" aria-hidden="true"></span>
   <interior-dropdown data-k="font" label="" value=""></interior-dropdown>
-  <label class="inline-bar-step" title="Letter spacing"><span>Spacing</span><interior-stepper data-k="track" step="1" value="0" suffix="%" label="Letter spacing"></interior-stepper></label>
-  <label class="inline-bar-step" title="Text width"><span>Width</span><interior-stepper data-k="w" step="5" value="100" suffix="%" label="Text width"></interior-stepper></label>
-  <button type="button" data-k="reset" title="Reset this line's style">Reset</button>
+  <label class="ib-num" title="Font size (pt)"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 4h7M5 4v9M9.5 8h5M12 8v5"/></svg><input type="number" data-k="size" step="1" aria-label="Font size in points"></label>
+  <label class="ib-num" title="Letter spacing (% of the size)"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 8h13M4 5.5 1.5 8 4 10.5M12 5.5 14.5 8 12 10.5"/></svg><input type="number" data-k="track" step="1" aria-label="Letter spacing in percent"></label>
+  <label class="ib-num" title="Text width (% of the page)"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2.5v11M14 2.5v11M5 8h6M7 6 5 8l2 2M9 6l2 2-2 2"/></svg><input type="number" data-k="w" step="5" aria-label="Text width in percent"></label>
+  <span class="ib-sep" aria-hidden="true"></span>
+  <button type="button" data-k="hide" aria-pressed="false" title="Hide this line" aria-label="Hide this line"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8Z"/><circle cx="8" cy="8" r="2"/><path d="m2.5 2.5 11 11"/></svg></button>
+  <button type="button" data-k="undo" title="Undo (Ctrl+Z)" aria-label="Undo"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3 2 6l3 3"/><path d="M2 6h7.5a3.5 3.5 0 0 1 0 7H6"/></svg></button>
+  <button type="button" data-k="reset" title="Reset this line" aria-label="Reset this line"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 8a5.5 5.5 0 1 0 1.6-3.9"/><path d="M2.5 2v3h3"/></svg></button>
 </div>
 
 <script src="components/interior/segmented-control.js"></script>

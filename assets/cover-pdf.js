@@ -166,14 +166,23 @@ window.BUPCoverPDF = (() => {
     const styles = state.styles || {};
     /* One line of the sheet, with any override from the inline editor (keyed
        by the preview element's id) laid over the line's own defaults. */
-    const line = (id, text, size, leading, gapAfter, d = {}) => {
-      const s = styles[id] || {};
+    const L = values.labels;
+    const faceOf = (s, d) => {
       const b = s.b ?? !!d.b, i = s.i ?? !!d.i;
       const fc = s.font ? faces(fontFor.fonts, S, s.font) : f;
-      const font = b && i ? fc.boldItalic : b ? fc.bold : i ? fc.italic : fc.regular;
+      return b && i ? fc.boldItalic : b ? fc.bold : i ? fc.italic : fc.regular;
+    };
+    // CSS text-transform: uppercase / capitalize; "none" keeps the text as typed.
+    const cased = (text, c) => c === "upper" ? text.toUpperCase()
+      : c === "title" ? text.replace(/(^|\s)(\S)/g, (m, sp, ch) => sp + ch.toUpperCase()) : text;
+    const line = (id, text, baseSize, leading, gapAfter, d = {}) => {
+      const s = styles[id] || {};
+      if (s.hide) return spacer(0);
+      const size = s.size ?? baseSize;
+      const font = faceOf(s, d);
       const track = s.track ?? d.track ?? 0;
       const width = contentW * (s.w ?? d.w ?? 100) / 100;
-      return textBlock((d.balance ? balance : wrap)(text, font, size, width, track),
+      return textBlock((d.balance ? balance : wrap)(cased(text, s.case ?? d.case), font, size, width, track),
         font, size, leading, gapAfter, track, d.color, s.u);
     };
 
@@ -192,7 +201,7 @@ window.BUPCoverPDF = (() => {
     }
     if (state.showAddress && (state.univAddress || "").trim()) {
       mastParts.push(spacer(1.5 * MM));
-      mastParts.push(line("pUnivAddress", state.univAddress.trim().toUpperCase(), 9, 1.3, 0, { b: 1, track: 0.08, color: muted }));
+      mastParts.push(line("pUnivAddress", state.univAddress.trim(), 9, 1.3, 0, { b: 1, track: 0.08, color: muted, case: "upper" }));
     }
 
     const logoH = (state.logoPx || 112) * PX;
@@ -219,7 +228,7 @@ window.BUPCoverPDF = (() => {
     ]);
 
     const to = stack([
-      textBlock(["Submitted To:"], f.bold, 13, 1.3, 2 * MM, 0.05),
+      line("pToTitle", L.to, 13, 1.3, 2 * MM, { b: 1, track: 0.05 }),
       line("pTeacherName", state.teacherName || "", 13.5, 1.45, 0, { b: 1 }),
       line("pTeacherDept", state.teacherDept || "", 12, 1.45, 0, { color: muted }),
       line("pTeacherAffil", state.teacherAffiliation || "", 12, 1.45, 0, { color: muted }),
@@ -234,16 +243,21 @@ window.BUPCoverPDF = (() => {
     const tableW = showWork ? contentW : contentW * 0.86;
     const padX = 16 * PX, padY = 7 * PX;
     const tableRows = [];
-    if (group) tableRows.push({ fill: fontFor.grey, pad: 5 * PX, cells: ["Name", "Student ID", "Contributed Topics"]
-      .slice(0, showWork ? 3 : 2).map(t => [t, f.bold, 10.5]) });
-    rows.forEach(m => tableRows.push({ pad: padY, cells: [[m.name || "", f.bold, 12], [m.id || "", f.bold, 12],
+    // The heading row takes its line style from the inline editor, like the preview's row.
+    const hs = styles.pTableHead || {};
+    if (group && !hs.hide) {
+      const hf = faceOf(hs, { b: 1 }), hz = hs.size ?? 10.5;
+      tableRows.push({ fill: fontFor.grey, pad: 5 * PX, track: hs.track ?? 0.04, underline: hs.u,
+        cells: [L.name, L.id, L.work].slice(0, showWork ? 3 : 2).map(t => [cased(t, hs.case), hf, hz]) });
+    }
+    rows.forEach(m => tableRows.push({ pad: padY, track: 0, cells: [[m.name || "", f.bold, 12], [m.id || "", f.bold, 12],
       [(m.work || "").trim(), f.regular, 11]].slice(0, showWork ? 3 : 2) }));
     // Columns size to their content, the way the browser's auto table layout does:
     // widest line per column, scaled to fit; if that overflows, longest word plus a share of the rest.
     const cols = tableRows[0].cells.map((_, i) => tableRows.reduce(([lo, hi], r) => {
       const [text, font, size] = r.cells[i];
-      const words = String(text).split(/\s+/).map(w => font.widthOfTextAtSize(w, size));
-      return [Math.max(lo, ...words), Math.max(hi, font.widthOfTextAtSize(String(text).trim(), size))];
+      const words = String(text).split(/\s+/).map(w => trackedWidth(w, font, size, r.track));
+      return [Math.max(lo, ...words), Math.max(hi, trackedWidth(String(text).trim(), font, size, r.track))];
     }, [0, 0]).map(w => w + 2 * padX));
     const sum = k => cols.reduce((n, c) => n + c[k], 0);
     // Too wide for one line each: names and IDs stay whole and the last column wraps.
@@ -258,7 +272,7 @@ window.BUPCoverPDF = (() => {
           : cols.map(c => c[0] + (c[1] - c[0]) * (tableW - sum(0)) / (sum(1) - sum(0)));
     tableRows.forEach(r => {
       r.cells = r.cells.map(([text, font, size], i) => ({ font, size,
-        lines: wrap(text, font, size, colW[i] - 2 * padX).concat(text ? [] : [""]) }));
+        lines: wrap(text, font, size, colW[i] - 2 * padX, r.track).concat(text ? [] : [""]) }));
       r.h = Math.max(...r.cells.map(c => c.lines.length * c.size * 1.2)) + 2 * r.pad;
     });
 
@@ -278,7 +292,13 @@ window.BUPCoverPDF = (() => {
             let ly = y + r.h / 2 + (cl.lines.length * cl.size * 1.2) / 2;
             cl.lines.forEach(line => {
               ly -= cl.size * 1.2;
-              pg.drawText(line, { x: x + padX, y: ly + cl.size * 0.28, size: cl.size, font: cl.font, color: ctx.ink });
+              const base = ly + cl.size * 0.28;
+              drawTracked(pg, line, { x: x + padX, y: base, size: cl.size, font: cl.font, color: ctx.ink, track: r.track });
+              if (r.underline) pg.drawLine({
+                start: { x: x + padX, y: base - cl.size * 0.12 },
+                end: { x: x + padX + trackedWidth(line, cl.font, cl.size, r.track), y: base - cl.size * 0.12 },
+                thickness: cl.size * 0.06, color: ctx.ink,
+              });
             });
             x += colW[i];
           });
@@ -288,17 +308,18 @@ window.BUPCoverPDF = (() => {
     };
 
     const meta = [];
-    if (group && (state.groupNo || "").trim()) meta.push(["pGroup", `Group: ${state.groupNo.trim()}`]);
-    if ((state.section || "").trim()) meta.push(["pSection", `Section: ${state.section.trim()}`]);
-    if ((state.intake || "").trim()) meta.push(["pBatchWrap", `Batch/Intake: ${state.intake.trim()}`]);
-    if ((state.session || "").trim()) meta.push(["pSession", `Session: ${state.session.trim()}`]);
+    const labelled = (k, v) => `${L[k]} ${v.trim()}`.trim();
+    if (group && (state.groupNo || "").trim()) meta.push(["pGroup", labelled("group", state.groupNo)]);
+    if ((state.section || "").trim()) meta.push(["pSection", labelled("section", state.section)]);
+    if ((state.intake || "").trim()) meta.push(["pBatchWrap", labelled("intake", state.intake)]);
+    if ((state.session || "").trim()) meta.push(["pSession", labelled("session", state.session)]);
     if ((state.studentDept || "").trim()) meta.push(["pStudentDept", state.studentDept.trim()]);
     const metaBlock = stack(meta.map(([id, text]) => line(id, text, 12, 1.55, 0)));
 
-    const byParts = [textBlock(["Submitted By:"], f.bold, 13, 1.3, 2 * MM, 0.05), table, metaBlock];
+    const byParts = [line("pByTitle", L.by, 13, 1.3, 2 * MM, { b: 1, track: 0.05 }), table, metaBlock];
     if (state.showDate && state.submissionDate) {
       byParts.push(spacer(2 * MM));
-      byParts.push(line("pDateWrap", `Date of Submission: ${values.dateLong}`, 11, 1.4, 0, { i: 1, color: muted }));
+      byParts.push(line("pDateWrap", `${L.date} ${values.dateLong}`.trim(), 11, 1.4, 0, { i: 1, color: muted }));
     }
 
     // No crest (an unlisted university with none uploaded) drops the block.

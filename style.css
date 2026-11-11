@@ -717,14 +717,18 @@ interior-accordion {
   color: #0b1329;
 }
 
+/* Type is set on the row, so the inline editor's row style reaches every cell */
+.students-table thead tr {
+  font-size: 10.5pt;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
 .students-table th {
   border: 1.5px solid #1f2937;
   padding: 5px 16px;
   line-height: 1.2;
   background: #ececec;
-  font-size: 10.5pt;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font: inherit;
   text-align: left;
   color: #0b1329;
 }
@@ -1024,15 +1028,22 @@ interior-accordion {
   .a4-sheet [data-inline] { cursor: text; border-radius: 2px; outline: 1px dashed transparent; outline-offset: 2px; }
   .a4-sheet [data-inline]:hover { outline-color: var(--accent-soft); }
   .a4-sheet [data-inline].is-editing { outline: 1.5px solid var(--accent); }
+  /* A cleared label keeps something to click, so it can be typed back */
+  .a4-sheet [data-label]:empty { display: inline-block; min-width: 2em; min-height: 1em; background: var(--accent-soft); }
+  /* Hidden lines show faintly while the bar is open, to be brought back */
+  .a4-sheet.show-off .is-off { display: revert; opacity: 0.3; }
 }
+.a4-sheet .is-off { display: none; }
 
 .inline-bar {
   position: fixed;
   z-index: 50;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
-  padding: 6px;
+  max-width: calc(100vw - 16px);
+  gap: 2px;
+  padding: 4px;
   border: 1px solid var(--hairline);
   border-radius: var(--r-md);
   background: var(--panel);
@@ -1042,22 +1053,46 @@ interior-accordion {
 .inline-bar button {
   display: grid;
   place-items: center;
-  min-width: var(--control-h);
-  height: var(--control-h);
-  padding: 0 10px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
   border: 0;
   border-radius: var(--r-sm);
-  background: var(--well);
-  box-shadow: var(--shadow-cap);
-  color: var(--ink);
+  background: none;
+  color: var(--ink-2);
   font: 500 var(--text)/1 var(--font-ui);
   cursor: pointer;
 }
+.inline-bar button:hover { background: var(--sub); color: var(--ink); }
 .inline-bar button b, .inline-bar button i, .inline-bar button u { font-family: Georgia, serif; font-size: 15px; }
+.inline-bar .ib-case { width: 38px; font-size: 12px; }
 .inline-bar button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
-.inline-bar button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.inline-bar interior-dropdown { width: 150px; }
-.inline-bar-step { display: flex; align-items: center; gap: 6px; font: 500 12px/1 var(--font-ui); color: var(--ink-2); }
+.inline-bar button:disabled { opacity: 0.35; cursor: default; background: none; }
+.inline-bar button:focus-visible, .ib-num:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+.inline-bar interior-dropdown { width: 104px; --control-h: 30px; }
+.ib-sep { width: 1px; height: 18px; margin: 0 3px; background: var(--hairline); }
+.ib-num {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 30px;
+  padding: 0 4px 0 6px;
+  border-radius: var(--r-sm);
+  color: var(--ink-3);
+}
+.ib-num:hover { background: var(--sub); }
+.ib-num input {
+  width: 3.4ch;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: 500 var(--text)/1 var(--font-ui);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  outline: none;
+  -moz-appearance: textfield;
+}
+.ib-num input::-webkit-inner-spin-button, .ib-num input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 
 /* ==========================================================================
    Print Stylesheet (@media print)

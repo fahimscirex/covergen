@@ -102,7 +102,8 @@ const DEFAULT_DATA = {
   border: "border-none",
   spacing: "spacing-balanced",
   logoPx: 112,
-  styles: {}   // per-line overrides from the sheet's inline editor, keyed by element id
+  styles: {},  // per-line overrides from the sheet's inline editor, keyed by element id
+  labels: {}   // the sheet's fixed labels ("Submitted To:", "Section:"...), where retyped
 };
 
 const STORAGE_KEY = "bup_cover_original_v4";
@@ -254,6 +255,7 @@ function loadSavedState() {
       const parsed = JSON.parse(saved);
       state = Object.assign({}, DEFAULT_DATA, parsed);
       state.styles = cleanStyles(state.styles);
+      state.labels = cleanLabels(state.labels);
       // Saves from before the setup step: these people are past it.
       if (parsed.setupDone === undefined) state.setupDone = true;
       if (state.teacherName) {
@@ -519,7 +521,7 @@ function updatePreview() {
   const showWork = group && membersToDisplay.some(m => (m.work || "").trim());
   elements.pStudentsTable.classList.toggle("has-work", showWork);
   elements.pStudentsTable.innerHTML =
-    (group ? `<thead><tr><th>Name</th><th>Student ID</th>${showWork ? "<th>Contributed Topics</th>" : ""}</tr></thead>` : "") +
+    (group ? `<thead><tr id="pTableHead" data-inline><th data-label="name">${escapeHtml(labelText("name"))}</th><th data-label="id">${escapeHtml(labelText("id"))}</th>${showWork ? `<th data-label="work">${escapeHtml(labelText("work"))}</th>` : ""}</tr></thead>` : "") +
     "<tbody>" + membersToDisplay.map(m => `<tr>
       <td class="col-name">${escapeHtml(m.name || "")}</td>
       <td class="col-id">${escapeHtml(m.id || "")}</td>
@@ -531,18 +533,21 @@ function updatePreview() {
     elements.pStudentsTable.classList.remove("keep-names");
 
   const groupNo = group && (state.groupNo || "").trim();
-  elements.pGroup.textContent = groupNo ? `Group: ${groupNo}` : "";
+  elements.pGroup.innerHTML = groupNo ? labelled("group", groupNo) : "";
   elements.pGroup.classList.toggle("hidden", !groupNo);
-  elements.pSection.textContent = state.section ? `Section: ${state.section}` : "";
+  elements.pSection.innerHTML = state.section ? labelled("section", state.section) : "";
+  document.getElementById("pToTitle").textContent = labelText("to");
+  document.getElementById("pByTitle").textContent = labelText("by");
+  elements.pDateLabel.textContent = labelText("date");
 
   if (state.intake && state.intake.trim()) {
-    elements.pBatch.textContent = `Batch/Intake: ${state.intake.trim()}`;
+    elements.pBatch.innerHTML = labelled("intake", state.intake.trim());
     elements.pBatchWrap.classList.remove("hidden");
   } else {
     elements.pBatchWrap.classList.add("hidden");
   }
 
-  elements.pSession.textContent = state.session ? `Session: ${state.session}` : "";
+  elements.pSession.innerHTML = state.session ? labelled("session", state.session) : "";
   elements.pStudentDept.textContent = state.studentDept || "";
 
   if (state.showDate && state.submissionDate) {
@@ -565,7 +570,7 @@ function updatePreview() {
   elements.pUnivName.style.fontSize = `${state.headerPt || 21}pt`;
   // Border and spacing belong to the Bangladeshi layout; the others are fixed.
   const bd = state.format === "bd";
-  elements.a4Sheet.className = `a4-sheet ${state.font || "font-times"} ${state.headerCase || "header-caps"} ${state.topicSize || "topic-lg"} ${bd ? state.border || "border-none" : ""} ${state.spacing || "spacing-balanced"}`;
+  elements.a4Sheet.className = `a4-sheet ${state.font || "font-times"} ${state.headerCase || "header-caps"} ${state.topicSize || "topic-lg"} ${bd ? state.border || "border-none" : ""} ${state.spacing || "spacing-balanced"}${inlineCurrent ? " show-off" : ""}`;
 
   const template = state.format === "mla" && state.mlaTitlePage ? "mlatp" : state.format;
   elements.a4Sheet.querySelectorAll(".sheet-inner").forEach(el =>
@@ -584,25 +589,39 @@ function updatePreview() {
   applyLineStyles();
 }
 
-/* Inline editing on the Bangladeshi sheet: click a line to restyle the whole
-   line, and retype it where it maps to one sidebar field. The merged PDF reads
-   the same state.styles, keyed by these element ids. */
+/* Inline editing on the Bangladeshi sheet. Clicking a line ([data-inline])
+   opens the style bar for that whole line; lines that are one sidebar field
+   ([data-field]) and the fixed labels ([data-label]) can be retyped in place.
+   The merged PDF reads the same state.styles (keyed by these element ids) and
+   state.labels. Listeners sit on the sheet, since some lines are re-rendered. */
 const INLINE = {
-  pUnivName: {},
-  pUnivTagline: { field: "univTagline", input: "univTaglineInput" },
-  pUnivAddress: { field: "univAddress", input: "univAddressInput" },
-  pPrefix: { field: "prefix", input: "assignmentPrefix" },
-  pTopic: { field: "topic", input: "assignmentTopic", w: 90 },
-  pCourse: {},
-  pTeacherName: { field: "teacherName", input: "teacherName" },
-  pTeacherDept: { field: "teacherDept", input: "teacherDept" },
-  pTeacherAffil: { field: "teacherAffiliation", input: "teacherAffiliation" },
+  pUnivName: {}, pUnivTagline: {}, pUnivAddress: {}, pPrefix: {}, pTopic: { w: 90 }, pCourse: {},
+  pToTitle: {}, pTeacherName: {}, pTeacherDept: {}, pTeacherAffil: {}, pByTitle: {}, pTableHead: {},
   pGroup: {}, pSection: {}, pBatchWrap: {}, pSession: {}, pStudentDept: {}, pDateWrap: {},
 };
+// Lines retyped in place: element id -> [state key, sidebar input]
+const INLINE_FIELDS = {
+  pUnivTagline: ["univTagline", "univTaglineInput"], pUnivAddress: ["univAddress", "univAddressInput"],
+  pPrefix: ["prefix", "assignmentPrefix"], pTopic: ["topic", "assignmentTopic"],
+  pTeacherName: ["teacherName", "teacherName"], pTeacherDept: ["teacherDept", "teacherDept"],
+  pTeacherAffil: ["teacherAffiliation", "teacherAffiliation"],
+};
+const LABELS = {
+  to: "Submitted To:", by: "Submitted By:", group: "Group:", section: "Section:", intake: "Batch/Intake:",
+  session: "Session:", date: "Date of Submission:", name: "Name", id: "Student ID", work: "Contributed Topics",
+};
+const labelText = (k) => state.labels[k] ?? LABELS[k];
+// "Section: A", with the label as its own retypeable span.
+const labelled = (k, value) => `<span data-label="${k}">${escapeHtml(labelText(k))}</span> ${escapeHtml(value)}`;
+
 const TRACK = [-5, 30];   // letter spacing, hundredths of an em
 const WIDTH = [40, 100];  // text width, % of the sheet's text column
+const SIZE = [7, 40];     // font size, pt
+const CASES = ["none", "upper", "title"];
+const CASE_CSS = { none: "none", upper: "uppercase", title: "capitalize" };
+let inlineCurrent = null; // id of the line the style bar is open on
 
-// Styles come from localStorage and share links: keep known lines and fields, in range.
+// Styles and labels come from localStorage and share links: known keys, right types, in range.
 function cleanStyles(raw) {
   const out = {};
   if (!raw || typeof raw !== "object") return out;
@@ -611,25 +630,40 @@ function cleanStyles(raw) {
     const s = raw[id];
     if (!s || typeof s !== "object") continue;
     const c = {};
-    for (const k of ["b", "i", "u"]) if (typeof s[k] === "boolean") c[k] = s[k];
+    for (const k of ["b", "i", "u", "hide"]) if (typeof s[k] === "boolean") c[k] = s[k];
     if (fonts.includes(s.font)) c.font = s.font;
+    if (CASES.includes(s.case)) c.case = s.case;
     if (Number.isFinite(s.track) && s.track * 100 >= TRACK[0] && s.track * 100 <= TRACK[1]) c.track = s.track;
     if (Number.isInteger(s.w) && s.w >= WIDTH[0] && s.w <= WIDTH[1]) c.w = s.w;
+    if (Number.isInteger(s.size) && s.size >= SIZE[0] && s.size <= SIZE[1]) c.size = s.size;
     if (Object.keys(c).length) out[id] = c;
   }
+  return out;
+}
+function cleanLabels(raw) {
+  const out = {};
+  if (!raw || typeof raw !== "object") return out;
+  for (const k of Object.keys(LABELS)) if (typeof raw[k] === "string" && raw[k].length <= 80) out[k] = raw[k];
   return out;
 }
 
 function applyLineStyles() {
   for (const id of Object.keys(INLINE)) {
-    const el = document.getElementById(id), s = state.styles[id] || {};
+    const el = document.getElementById(id);
+    if (!el) continue; // the table head exists only for groups
+    const s = state.styles[id] || {};
     el.style.fontWeight = s.b === undefined ? "" : s.b ? "700" : "400";
     el.style.fontStyle = s.i === undefined ? "" : s.i ? "italic" : "normal";
     el.style.textDecoration = s.u ? "underline" : "";
     el.style.fontFamily = s.font ? `var(--${s.font})` : "";
     el.style.letterSpacing = s.track === undefined ? "" : `${s.track}em`;
+    el.style.textTransform = s.case ? CASE_CSS[s.case] : "";
     el.style.maxWidth = s.w ? `${s.w}%` : "";
     el.style.marginInline = s.w ? "auto" : "";
+    // The headline's own size comes from the Headline size control.
+    el.style.fontSize = s.size ? `${s.size}pt` : id === "pUnivName" ? `${state.headerPt || 21}pt` : "";
+    el.classList.toggle("is-off", !!s.hide);
+    el.classList.toggle("is-editing", id === inlineCurrent);
   }
 }
 
@@ -644,90 +678,167 @@ function setLineStyle(id, patch) {
 
 function initInlineEditor() {
   const bar = document.getElementById("inlineBar");
-  const font = bar.querySelector('[data-k="font"]');
-  const track = bar.querySelector('[data-k="track"]');
-  const width = bar.querySelector('[data-k="w"]');
-  font.items = [{ value: "", label: "Document font", full: "Document font" }, ...elements.fontSelect.items];
-  track.setAttribute("min", TRACK[0]); track.setAttribute("max", TRACK[1]);
-  width.setAttribute("min", WIDTH[0]); width.setAttribute("max", WIDTH[1]);
-  let current = null;
+  const sheet = elements.a4Sheet;
+  const q = (k) => bar.querySelector(`[data-k="${k}"]`);
+  const font = q("font");
+  const nums = { size: [q("size"), SIZE], track: [q("track"), TRACK], w: [q("w"), WIDTH] };
+  font.items = [{ value: "", label: "Default", full: "Document font" },
+    ...elements.fontSelect.items.map(i => ({ ...i, label: i.label.replace(/^(EB|Libre) /, "").split(" ")[0] }))];
+  for (const [input, [min, max]] of Object.values(nums)) { input.min = min; input.max = max; }
+  for (const [id, [field]] of Object.entries(INLINE_FIELDS)) document.getElementById(id).dataset.field = field;
+  for (const id of Object.keys(INLINE)) document.getElementById(id)?.setAttribute("data-inline", "");
 
+  // Undo covers styling and labels; typing inside a line keeps the browser's own undo.
+  const undo = [];
+  let lastKey = "", lastAt = 0;
+  const remember = (key) => {
+    if (key && key === lastKey && Date.now() - lastAt < 1200) { lastAt = Date.now(); return; }
+    undo.push(JSON.stringify({ styles: state.styles, labels: state.labels }));
+    if (undo.length > 50) undo.shift();
+    lastKey = key; lastAt = Date.now();
+  };
+  const line = () => document.getElementById(inlineCurrent);
   const paint = () => {
-    const el = document.getElementById(current), cs = getComputedStyle(el), s = state.styles[current] || {};
-    bar.querySelector('[data-k="b"]').setAttribute("aria-pressed", Number(cs.fontWeight) >= 600);
-    bar.querySelector('[data-k="i"]').setAttribute("aria-pressed", cs.fontStyle === "italic");
-    bar.querySelector('[data-k="u"]').setAttribute("aria-pressed", !!s.u);
+    const el = line(), cs = getComputedStyle(el), s = state.styles[inlineCurrent] || {};
+    const px = parseFloat(cs.fontSize);
+    const kase = cs.textTransform === "uppercase" ? "upper" : cs.textTransform === "capitalize" ? "title" : "none";
+    q("b").setAttribute("aria-pressed", Number(cs.fontWeight) >= 600);
+    q("i").setAttribute("aria-pressed", cs.fontStyle === "italic");
+    q("u").setAttribute("aria-pressed", !!s.u);
+    q("hide").setAttribute("aria-pressed", !!s.hide);
+    q("case").textContent = { none: "abc", upper: "ABC", title: "Abc" }[kase];
+    q("case").dataset.case = kase;
+    q("undo").disabled = !undo.length;
     font.value = s.font || "";
-    track.value = Math.round((parseFloat(cs.letterSpacing) || 0) / parseFloat(cs.fontSize) * 100);
-    width.value = s.w ?? INLINE[current].w ?? 100;
+    nums.size[0].value = s.size ?? Math.round(px * 0.75); // px to pt
+    nums.track[0].value = Math.round((parseFloat(cs.letterSpacing) || 0) / px * 100);
+    nums.w[0].value = s.w ?? INLINE[inlineCurrent].w ?? 100;
   };
   const place = () => {
-    const r = document.getElementById(current).getBoundingClientRect();
-    const b = bar.getBoundingClientRect();
-    bar.style.top = `${Math.max(8, r.top - b.height - 8)}px`;
+    const r = line().getBoundingClientRect(), b = bar.getBoundingClientRect();
+    bar.style.top = `${r.top - b.height - 8 < 8 ? r.bottom + 8 : r.top - b.height - 8}px`;
     bar.style.left = `${Math.min(Math.max(8, r.left + r.width / 2 - b.width / 2), innerWidth - b.width - 8)}px`;
   };
-  const close = () => {
-    if (!current) return;
-    document.getElementById(current).classList.remove("is-editing");
-    current = null;
-    bar.hidden = true;
+  const commit = (patch, key) => {
+    remember(key);
+    setLineStyle(inlineCurrent, patch);
+    paint(); place();
   };
-
-  for (const [id, line] of Object.entries(INLINE)) {
-    const el = document.getElementById(id);
-    el.dataset.inline = "";
-    el.title = line.field ? "Click to edit or style this line" : "Click to style this line";
-    if (line.field) {
-      /* Editable only while being edited: Chrome forces editable text to keep
-         its spaces, which would show at line ends under an underline. Set on
-         pointerdown so the click that follows still places the caret. */
-      el.addEventListener("pointerdown", () => {
-        if (state.format === "bd" && !el.isContentEditable) el.contentEditable = "plaintext-only";
-      });
-      el.spellcheck = false;
-      el.addEventListener("input", () => {
-        const text = el.textContent.replace(/\u00a0/g, " "); // collapsed-space typing inserts nbsp
-        state[line.field] = text;
-        elements[line.input].value = text;
-        saveState();
-      });
-      el.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); el.blur(); } });
-      el.addEventListener("blur", () => { el.contentEditable = "false"; updatePreview(); });
-    }
-    el.addEventListener("click", () => {
-      if (state.format !== "bd") return;
-      if (current && current !== id) document.getElementById(current).classList.remove("is-editing");
-      current = id;
-      el.classList.add("is-editing");
-      bar.hidden = false;
-      paint();
-      place();
-    });
-  }
+  const open = (id) => {
+    inlineCurrent = id;
+    sheet.classList.add("show-off"); // hidden lines show faintly, so they can be brought back
+    bar.hidden = false;
+    applyLineStyles();
+    paint(); place();
+  };
+  const close = () => {
+    if (!inlineCurrent) return;
+    inlineCurrent = null;
+    sheet.classList.remove("show-off");
+    bar.hidden = true;
+    applyLineStyles();
+  };
+  const toggle = (k) => commit({ [k]: q(k).getAttribute("aria-pressed") !== "true" });
 
   bar.addEventListener("click", (e) => {
     const k = e.target.closest("button")?.dataset.k;
-    if (!k || !current) return;
-    if (k === "reset") setLineStyle(current, { b: undefined, i: undefined, u: undefined, font: undefined, track: undefined, w: undefined });
-    else {
-      const on = e.target.closest("button").getAttribute("aria-pressed") === "true";
-      setLineStyle(current, { [k]: !on });
-    }
-    paint();
-    place();
+    if (!k || !inlineCurrent) return;
+    if (k === "reset") commit(Object.fromEntries(["b", "i", "u", "hide", "font", "case", "track", "w", "size"].map(x => [x, undefined])));
+    else if (k === "case") commit({ case: CASES[(CASES.indexOf(q("case").dataset.case) + 1) % CASES.length] });
+    else if (k === "undo") undoLast();
+    else toggle(k);
   });
-  font.addEventListener("change", () => { setLineStyle(current, { font: font.value || undefined }); paint(); place(); });
-  track.addEventListener("change", (e) => { setLineStyle(current, { track: e.detail.value / 100 }); place(); });
-  width.addEventListener("change", (e) => { setLineStyle(current, { w: e.detail.value }); place(); });
+  font.addEventListener("change", () => commit({ font: font.value || undefined }));
+  for (const [k, [input, [min, max]]] of Object.entries(nums)) {
+    const set = (v) => {
+      if (!Number.isFinite(v) || v < min || v > max) return;
+      commit({ [k]: k === "track" ? v / 100 : v }, k);
+    };
+    input.addEventListener("input", () => set(input.valueAsNumber));
+    input.addEventListener("change", () => paint()); // an out-of-range entry snaps back
+    // The scroll wheel nudges, without the field having to be focused first.
+    input.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const v = Math.min(max, Math.max(min, (input.valueAsNumber || 0) + (e.deltaY < 0 ? 1 : -1)));
+      input.value = v;
+      set(v);
+    }, { passive: false });
+  }
 
-  document.addEventListener("pointerdown", (e) => {
-    if (current && !bar.contains(e.target) && !e.target.closest("[data-inline]")) close();
+  function undoLast() {
+    const prev = undo.pop();
+    if (!prev) return;
+    ({ styles: state.styles, labels: state.labels } = JSON.parse(prev));
+    lastKey = "";
+    updatePreview();
+    saveState();
+    if (inlineCurrent && line()) { paint(); place(); } else close();
+  }
+
+  sheet.addEventListener("pointerdown", (e) => {
+    if (state.format !== "bd") return;
+    /* Editable only while being edited: Chrome forces editable text to keep its
+       spaces, which would show at line ends under an underline. Set here so the
+       click that follows still places the caret. */
+    const t = e.target.closest("[data-field], [data-label]");
+    if (t && !t.isContentEditable) {
+      if (t.dataset.label) remember("");
+      t.contentEditable = "plaintext-only";
+      t.spellcheck = false;
+    }
   });
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape") close(); });
-  document.getElementById("previewScroll").addEventListener("scroll", close);
+  sheet.addEventListener("click", (e) => {
+    const el = e.target.closest("[data-inline]");
+    if (el && state.format === "bd") open(el.id);
+  });
+  sheet.addEventListener("input", (e) => {
+    const t = e.target;
+    const text = t.textContent.replace(/ /g, " "); // collapsed-space typing inserts nbsp
+    if (t.dataset.label) state.labels = { ...state.labels, [t.dataset.label]: text };
+    else if (t.dataset.field) {
+      state[t.dataset.field] = text;
+      elements[INLINE_FIELDS[t.id][1]].value = text;
+    }
+    saveState();
+  });
+  sheet.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && e.target.isContentEditable) { e.preventDefault(); e.target.blur(); }
+  });
+  sheet.addEventListener("focusout", (e) => {
+    if (!e.target.isContentEditable) return;
+    e.target.contentEditable = "false";
+    updatePreview();
+    if (inlineCurrent && line()) place();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (!inlineCurrent) return;
+    if (e.key === "Escape") { document.activeElement?.blur(); close(); return; }
+    if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+    const key = e.key.toLowerCase();
+    if (["b", "i", "u"].includes(key)) { e.preventDefault(); toggle(key); }
+    // Inside a line or a number box, Ctrl+Z stays the browser's text undo.
+    else if (key === "z" && !e.shiftKey && !e.target.isContentEditable && !e.target.matches?.("input, textarea")) {
+      e.preventDefault();
+      undoLast();
+    }
+  });
+  document.addEventListener("pointerdown", (e) => {
+    if (inlineCurrent && !bar.contains(e.target) && !e.target.closest?.("[data-inline]")) close();
+  });
+  // Follow the line: focusing a line can itself scroll the preview.
+  document.getElementById("previewScroll").addEventListener("scroll", () => { if (inlineCurrent && line()) place(); });
   addEventListener("resize", close);
   elements.formatSelect.addEventListener("change", close);
+
+  document.getElementById("btnResetSheet").addEventListener("click", () => {
+    remember("");
+    state.styles = {};
+    state.labels = {};
+    close();
+    updatePreview();
+    saveState();
+  });
 }
 
 function attachEventListeners() {
@@ -1076,6 +1187,7 @@ function coverValues() {
     univTitle,
     faculty: faculty && faculty.name !== state.studentDept ? faculty.name : "",
     declaration: (state.declaration || "").trim(),
+    labels: { ...LABELS, ...state.labels },
     ukRows: [
       [names.length > 1 ? "Student names" : "Student name", names.join("\n")],
       [ids.length > 1 ? "Student IDs" : "Student ID", ids.join("\n")],
@@ -1339,6 +1451,7 @@ async function buildShareLink() {
   }
   p.m = state.members.flatMap(m => [m.name || "", m.id || ""]);
   if (Object.keys(state.styles).length) p.y = state.styles;
+  if (Object.keys(state.labels).length) p.l = state.labels;
   // Kept apart from p.m so links made before contributions still read.
   if (state.members.some(m => m.work)) p.k = state.members.map(m => m.work || "");
   // An uploaded crest would outweigh everything else; only its absence travels.
@@ -1465,6 +1578,7 @@ async function readShareLink() {
     });
 
     next.styles = cleanStyles(p.y);
+    next.labels = cleanLabels(p.l);
     let teacherMissing = false;
     if (typeof p.t === "string") {
       const t = directoryTeachers(data).find(x => shortHash(x.label) === p.t);
